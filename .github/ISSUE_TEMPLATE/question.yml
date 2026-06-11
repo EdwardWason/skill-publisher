@@ -1,0 +1,11 @@
+name: Question
+description: Ask a question about this skill
+labels: ["question"]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: 你的问题
+      description: 详细描述你的疑问
+    validations:
+      required: true

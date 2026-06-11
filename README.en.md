@@ -4,7 +4,7 @@
 
 [![Stars](https://img.shields.io/github/stars/EdwardWason/skill-publisher?style=flat-square)](https://github.com/EdwardWason/skill-publisher)
 [![License](https://img.shields.io/badge/license-MIT--0-green?style=flat-square)](LICENSE)
-[![ClawHub](https://img.shields.io/badge/ClawHub-skill--publisher-orange?style=flat-square)](https://clawhub.ai/skills/skill-publisher)
+[![ClawHub](https://img.shields.io/badge/ClawHub-skill--publisher--ai-orange?style=flat-square)](https://clawhub.ai/skills/skill-publisher-ai)
 [![Skill](https://img.shields.io/badge/Claude%20Code-Skill-blue?style=flat-square)](SKILL.md)
 
 [Get started](#30-second-start) · [Core mechanism](#core-mechanism) · [Limitations](#limitations) · [License](#license)
@@ -48,7 +48,7 @@ _"Say 'publish' — from local Skill to GitHub + ClawHub, fully deployed."_
 
 ```bash
 # ClawHub install (recommended)
-clawhub install skill-publisher
+clawhub install skill-publisher-ai
 
 # Or manual install
 git clone https://github.com/EdwardWason/skill-publisher.git

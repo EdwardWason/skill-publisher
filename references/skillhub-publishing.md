@@ -217,6 +217,38 @@ Token 已被撤销或失效。重新创建 Token，再执行 `login`。
 
 触发了平台限频，等约 1 分钟后重试。
 
+### `400 不允许的文件类型`（v5.1 新增，重要）
+
+**原因**：SkillHub 对上传文件类型有严格限制，以下文件会被拒绝：
+- `.gitignore`（dotfile）
+- `LICENSE`（无扩展名）
+- `.claude-plugin/`（隐藏目录）
+- `.github/`（隐藏目录）
+- 其他无扩展名文件或 dotfile
+
+**修复**：发布前临时移除这些文件，发布后立即恢复：
+
+```powershell
+# 备份并移除
+$skillPath = "d:\TRAE SOLO CN\project\skill-publisher"
+$backupPath = "d:\TRAE SOLO CN\project\_skillhub_backup"
+New-Item -ItemType Directory -Path $backupPath -Force
+
+Move-Item "$skillPath\.gitignore" "$backupPath\" -Force
+Move-Item "$skillPath\LICENSE" "$backupPath\" -Force
+Move-Item "$skillPath\.claude-plugin" "$backupPath\" -Force -ErrorAction SilentlyContinue
+Move-Item "$skillPath\.github" "$backupPath\" -Force -ErrorAction SilentlyContinue
+
+# 发布
+python "%USERPROFILE%\.skillhub\skills_store_cli.py" publish $skillPath --changelog "xxx"
+
+# 立即恢复
+Move-Item "$backupPath\*" "$skillPath\" -Force
+Remove-Item $backupPath -Recurse -Force
+```
+
+> **重要**：ClawHub 和 GitHub 允许这些文件，只有 SkillHub 会拒绝。三平台发布时，SkillHub 发布步骤需要单独处理文件类型。
+
 ### 发布成功但详情页显示"未找到"
 
 审核还在进行中。前往个人中心 → 我的 Skill 查看实时状态，审核通过后详情页自动可见。

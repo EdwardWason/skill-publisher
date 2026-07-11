@@ -71,6 +71,7 @@ license: MIT
 13. **SkillHub frontmatter 必须包含 5 字段**：`slug`（全网唯一）、`displayName`、`version`、`summary`、`license`，与 ClawHub 的 name/description 共存于同一 frontmatter（2026-07 新增，支持 SkillHub 平台）
 14. **SkillHub 发布前必须 dry-run 预检**：`skillhub publish <path> --dry-run` 检查格式，通过后才能正式发布（2026-07 新增，源自 SkillHub CLI 规范）
 15. **SKILLHUB_TOKEN 不可硬编码**：token 只通过环境变量 `SKILLHUB_TOKEN` 传递，安全扫描必须检查 `skh_` 前缀的硬编码值（2026-07 新增，支持 SkillHub 平台）
+16. **SkillHub 发布前必须临时移除不支持的文件类型**：`.gitignore`、`LICENSE`（无扩展名）、`.claude-plugin/`、`.github/` 会被 SkillHub 拒绝（400 错误）。发布前备份并移除，发布后立即恢复。ClawHub 和 GitHub 不受此限制（2026-07 新增，源自 SkillHub 文件类型限制）
 
 ## 执行流程
 
@@ -98,14 +99,20 @@ license: MIT
 # 1. 确认登录态
 skillhub auth whoami
 
-# 2. dry-run 预检（必须通过）
+# 2. 临时移除不支持的文件类型（.gitignore/LICENSE/.claude-plugin/.github）
+#    备份到临时目录，发布后立即恢复
+
+# 3. dry-run 预检（必须通过）
 skillhub publish <path> --dry-run
 
-# 3. 正式发布
+# 4. 正式发布
 skillhub publish <path> --changelog "变更说明"
+
+# 5. 立即恢复被移除的文件
 ```
 
 > **Windows 注意**：`skillhub` 命令可能因 python3 stub 失效（exit code 9009），需用 `python "%USERPROFILE%\.skillhub\skills_store_cli.py"` 替代。详见 `references/skillhub-publishing.md`。
+> **文件类型限制**：SkillHub 拒绝 `.gitignore`、`LICENSE`、`.claude-plugin/`、`.github/`，发布前必须临时移除，发布后立即恢复。
 
 ### Step 7: 发布后验证
 GitHub 文件列表检查 + `clawhub inspect <slug>` 确认 + SkillHub 状态检查。检查 ClawHub Short summary 是否与 frontmatter description 一致，不一致则递增版本号重新发布。

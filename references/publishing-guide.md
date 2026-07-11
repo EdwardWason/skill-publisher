@@ -797,14 +797,9 @@ Body: {
 }
 ```
 
-#### Token Extraction
+#### Token Source
 
-Token can be extracted from existing project git remotes:
-
-```bash
-git remote -v
-# Look for: https://<user>:ghp_xxx@github.com/...
-```
+Token MUST come from environment variable `GH_TOKEN`. Do NOT extract tokens from git remotes or other project files.
 
 #### Windows PowerShell Compatibility
 

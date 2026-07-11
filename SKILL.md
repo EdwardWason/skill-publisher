@@ -3,7 +3,7 @@ name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布/发布技能/更新技能/迭代技能 时触发。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
 displayName: Skill Publisher
-version: 5.3.0
+version: 5.4.0
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
@@ -93,13 +93,32 @@ allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash
     - **A（Applicability 适用）**：触发测试 — description 含核心触发词 + 有 Do NOT 排除范围
     - **C（Compliance 规范）**：Schema 检查 — 4 模块齐全（任务/输出格式/规则/示例）+ SKILL.md ≤200 行 + 示例含边界情况 + 规则通过实习生测试
     - **E（Effectiveness 有效）**：增量价值 — Skill 相比手动操作有明显增益（如自动化安全审查、版本号查重等）
+21. **GitHub token 有效性校验**（v5.4 新增）：Step 0 前置条件校验中，必须验证 GitHub token 是否有效：
+    - 用 `Invoke-RestMethod -Uri "https://api.github.com/user" -Headers @{Authorization="token $env:GH_TOKEN"}` 验证
+    - 返回 401 → 报"GitHub token 已失效，请到 https://github.com/settings/tokens 重新生成，并更新环境变量 GH_TOKEN"
+    - 返回 200 → token 有效，继续发布
+    - 网络超时 → 跳过验证，尝试推送时再降级处理
+22. **GitHub 推送三级降级**（v5.4 新增）：git push 失败时，按顺序降级：
+    - **Level 1 - git push**：直接推送，超时30秒自动失败
+    - **Level 2 - gh CLI**：如果 gh 命令可用，用 `gh repo sync` 或 `gh api` 推送
+    - **Level 3 - GitHub Git Data API**：用 Python urllib 调用 `/repos/{owner}/{repo}/git/blobs` + `/git/trees` + `/git/commits` + `/git/refs` 逐文件上传，适用于 git push 持续超时但 API 可达的场景
+    - Level 3 实现要点：base64 编码文件内容 → 创建 blob → 基于 base_tree 创建新 tree → 创建 commit → 更新 refs/heads/main
+23. **SkillHub 备份目录隔离**（v5.4 新增）：临时移除的不支持文件（规则16）不能备份在 skill 目录内部，否则会被 SkillHub 扫描到并报 400 错误：
+    - ✅ 正确：备份到 skill 目录外，如 `d:\TRAE SOLO CN\project\_skill_backup\`
+    - ❌ 错误：备份到 `skill-dir/_backup/`（会被扫描）
+    - 或者：用 zip 方式发布，只打包支持的文件，避免移除操作
+24. **SkillHub 文件锁定 fallback**（v5.4 新增）：Windows 上文件可能被其他进程占用导致无法移除，此时改用 zip 方式发布：
+    - 移除文件失败（Access denied / being used by another process）→ 改用 `Compress-Archive` 只打包支持的文件为 zip
+    - `skillhub publish <zip-path>` 支持 .zip 输入
+    - zip 内只包含：SKILL.md / README.md / CHANGELOG.md / references/ 等支持的文件
+    - 发布后自动清理临时 zip 文件
 
 ## 执行流程
 
 **读取 `references/publishing-guide.md` 获取完整发布流程。** 以下为摘要。
 
-### Step 0: 前置条件校验（v5.2 新增）
-执行规则17的4项前置条件校验（目录存在/SKILL.md存在/平台登录态/Git配置）+ 规则18的Skill质量门禁。任何一项不满足 = 中止发布，明确告知用户缺什么、怎么修。全部通过才进入 Step 1。
+### Step 0: 前置条件校验（v5.2 新增，v5.4 增强）
+执行规则17的4项前置条件校验（目录存在/SKILL.md存在/平台登录态/Git配置）+ 规则18的Skill质量门禁 + 规则21的GitHub token有效性校验。任何一项不满足 = 中止发布，明确告知用户缺什么、怎么修。全部通过才进入 Step 1。
 
 ### Step 1: 仓库结构生成
 生成标准目录：SKILL.md / README.md(中英双语) / CHANGELOG.md / LICENSE(MIT-0) / .gitignore / .claude-plugin/plugin.json。确认作者名、GitHub owner、版本号、ClawHub slug、SkillHub slug。SKILL.md frontmatter 必须同时包含 ClawHub 字段（name/description）和 SkillHub 字段（slug/displayName/version/summary/license）。
@@ -112,8 +131,8 @@ allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash
 - SkillHub：版本号在 frontmatter 的 `version` 字段中，更新时保持 slug 不变，递增 version。
 - GitHub：检查 git tag 是否已存在。
 
-### Step 4: GitHub 推送
-优先 git push → gh CLI → REST API 降级。创建 Release。
+### Step 4: GitHub 推送（v5.4 增强降级机制）
+按规则22三级降级：git push → gh CLI → GitHub Git Data API（Python urllib 逐文件上传）。创建 Release。git push 持续超时但 API 可达时，直接跳到 Level 3。
 
 ### Step 5: ClawHub 发布
 `clawhub publish <path> --slug <slug> --version <version> --tags "<ASCII-only>" --changelog "<text>"`
@@ -132,18 +151,19 @@ skillhub auth whoami
 #    任何维度 FAIL = 中止 SkillHub 发布，报告问题
 
 # 3. 临时移除不支持的文件类型（.gitignore/LICENSE/.claude-plugin/.github）
-#    备份到临时目录，发布后立即恢复
+#    备份到 skill 目录外（规则23），发布后立即恢复
+#    如果文件被占用无法移除（规则24），改用 zip 方式发布
 
 # 4. dry-run 预检（必须通过）
 skillhub publish <path> --dry-run
 
-# 5. 正式发布
-skillhub publish <path> --changelog "变更说明"
+# 5. 正式发布（目录或 zip 方式）
+skillhub publish <path-or-zip> --changelog "变更说明"
 
-# 6. 立即恢复被移除的文件
+# 6. 立即恢复被移除的文件 / 清理临时 zip
 ```
 
-> **Windows 注意**：`skillhub` 命令可能因 python3 stub 失效（exit code 9009），需用 `python "%USERPROFILE%\.skillhub\skills_store_cli.py"` 替代。详见 `references/skillhub-publishing.md`。
+> **Windows 注意**：如果 `skillhub` 命令报 exit code 9009，是因为 skillhub.bat 中调用了 `python3`（Windows 上只有 `python`）。修复方法：将 `C:\Users\<user>\.local\bin\skillhub.bat` 中的 `python3` 改为 `python`。或者直接用 `python "%USERPROFILE%\.skillhub\skills_store_cli.py"` 替代。
 > **文件类型限制**：SkillHub 拒绝 `.gitignore`、`LICENSE`、`.claude-plugin/`、`.github/`，发布前必须临时移除，发布后立即恢复。
 > **TRACE 预检**：SkillHub 平台会对上架技能执行 TRACE 五维度检测，本技能在发布前预执行同样的检测，避免上架后被扣分。
 

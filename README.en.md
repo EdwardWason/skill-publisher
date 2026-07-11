@@ -11,13 +11,15 @@
 
 ---
 
-_"Say 'publish' — from local Skill to GitHub + ClawHub, fully deployed."_
+_"Say 'publish skill' — from local Skill to GitHub + ClawHub, fully deployed."_
 
 ---
 
 **Skill Publisher** is not a git push cheat sheet — it's a full-pipeline automation tool from Skill completion to online publishing. It supports both **new publishing** and **iteration updates** with complete coverage: repo structure generation, security audit, change detection, auto version bump, CHANGELOG generation, push fallback, Release creation, and ClawHub publishing.
 
 ---
+
+> ⚠️ **Important**: This tool modifies Git repositories, creates GitHub Releases, and publishes to external platforms (ClawHub/SkillHub). These actions are externally visible and potentially irreversible. Confirm before executing.
 
 ## Features
 
@@ -61,19 +63,19 @@ Publish wx-peitu to GitHub and ClawHub
 ```
 
 ```
-Update react-design-draft
+Update skill react-design-draft
 ```
 
 ```
-Iterate skill-publisher
+Iterate skill skill-publisher
 ```
 
 ## Common Use Cases
 
 | Scenario | Workflow | Trigger |
 |----------|----------|---------|
-| New Skill completed, first publish | Workflow A | "publish"/"new" |
-| Existing Skill added new features | Workflow B | "update"/"iterate" |
+| New Skill completed, first publish | Workflow A | "publish skill"/"new skill" |
+| Existing Skill added new features | Workflow B | "update skill"/"iterate skill" |
 | Fixed a Skill bug | Workflow B | "update skill, fixed a bug" |
 | Rewrote Skill design system | Workflow B | "iterate skill, breaking change" |
 
@@ -82,10 +84,10 @@ Iterate skill-publisher
 ### Dual Workflow Auto-Detection
 
 ```
-User says "publish"/"new"?
+User says "publish skill"/"new skill"?
   → Workflow A: Repo structure → Security audit → Push → Publish
 
-User says "update"/"iterate"/"bump"?
+User says "update skill"/"iterate skill"/"bump"?
   → Workflow B: Change detection → Version bump → CHANGELOG → Security audit → Push → Publish
 ```
 

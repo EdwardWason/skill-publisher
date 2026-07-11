@@ -24,9 +24,11 @@ _「说一句'发布'，从本地 Skill 到 GitHub + ClawHub 全线就位。」_
 - 🏗 **双工作流**：新建发布（工作流 A）+ 迭代更新（工作流 B），自动检测模式
 - 📐 **产品着陆页 README**：21 章节标准，金句开篇 → 否定对比 → 效果展示 → 已知限制，从 SKILL.md 自动提取信息
 - 🌍 **双语独立文件**：中文 `README.md` + 英文 `README.en.md`，顶部互链切换
-- 🔒 **三层安全扫描（v5.0 扩展）**：凭证泄露（含 IMA/飞书新模式）+ 本地路径 + 危险命令，任何 FAIL 阻止发布
+- 🔒 **三层安全扫描（v5.0 扩展）**：凭证泄露（含 IMA/飞书/SkillHub 新模式）+ 本地路径 + 危险命令，任何 FAIL 阻止发布
 - 🔍 **版本号查重（v5.0 新增）**：ClawHub 发布前自动查重版本号，重复则递增 PATCH，避免 "Version already exists" 错误
 - 🚫 **ClawHub 自动文件排除（v5.0 新增）**：自动识别并排除 `skill-card.md`、`.clawhub/`、`_meta.json` 等 ClawHub 自动生成文件
+- 🧪 **SkillHub dry-run 预检（v5.1 新增）**：SkillHub 发布前自动 `--dry-run` 预检，检查 frontmatter 格式，通过后才正式发布
+- 🚀 **三平台同步发布（v5.1 新增）**：GitHub + ClawHub + SkillHub 三平台一键同步，frontmatter 兼容双平台字段
 - 📊 **变更检测 + 自动版本 bump**：按文件类别映射版本影响，决策树推荐 MAJOR/MINOR/PATCH
 - 📝 **自动 CHANGELOG 生成**：从 git log 提取，Conventional Commits 分类，空类别不输出
 - 🔄 **推送降级链**：git push → gh CLI → REST API，网络不稳定也能发布
@@ -91,12 +93,12 @@ git clone https://github.com/EdwardWason/skill-publisher.git
   → 工作流 B: 变更检测 → 版本 bump → CHANGELOG → 安全审查 → 推送 → 发布
 ```
 
-### 工作流 A：新建发布（14 步，v5.0 新增版本号查重）
+### 工作流 A：新建发布（15 步，v5.1 新增 SkillHub 发布）
 
 ```
 生成目录结构 → 生成 README(中/英) → 生成辅助文件 → 添加 provenance → 确认信息
  安全扫描 → 分发物判定 → ClawHub 自动文件排除 → slug 检查 → 版本号查重
- → 推送 → 创建 Release → ClawHub 发布 → 验证
+ → 推送 → 创建 Release → ClawHub 发布 → SkillHub dry-run → SkillHub 发布 → 验证
 ```
 
 ### 工作流 B：迭代更新（12 步）
@@ -189,6 +191,18 @@ v5.0 新增版本号查重：发布前自动 `clawhub inspect <slug>` 查重，�
 
 **ClawHub Short summary 没更新？**
 ClawHub 用首次发布的 description 作为 Short summary。更新 frontmatter description 后必须递增版本号重新发布。
+
+**SkillHub 发布报 409 slug 已被占用？**
+slug 必须**全网唯一**。建议带 handle 后缀（如 `skill-publisher-ai`）。修改 SKILL.md frontmatter 中的 slug 后重试。
+
+**SkillHub 发布报 exit code 9009（Windows）？**
+Windows 上 `python3` 是 Store stub，需用 `python` 直接调用：
+```powershell
+python "%USERPROFILE%\.skillhub\skills_store_cli.py" publish <path> --changelog "xxx"
+```
+
+**SkillHub 发布报 403 请先完成实名认证？**
+浏览器打开 skillhub.cn → 个人中心 → 实名认证 → 完成人脸核身。
 
 **README 太长怎么办？**
 智能适配：简单 Skill 只生成 10 个必选章节，复杂 Skill 生成全部 21 章节。

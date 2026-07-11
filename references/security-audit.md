@@ -10,10 +10,13 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 
 ### Layer 1: Credential Leak Scan
 
-**Grep pattern (v5.0 扩展)**: `token|api_key|api-key|secret|password|ghp_|gho_|ghs_|clh_|sk-|AKIA|cli_|IMA_OPENAPI|FEISHU_APP|APP_SECRET|CLIENTID|APIKEY|client_id|client_secret`
+**Grep pattern (v5.0 扩展)**: `token|api_key|api-key|secret|password|ghp_|gho_|ghs_|clh_|sk-|AKIA|cli_|IMA_OPENAPI|FEISHU_APP|APP_SECRET|CLIENTID|APIKEY|client_id|client_secret|skh_`
 
 > **v5.0 新增模式**（2026-07，源自 IMA/飞书凭证泄露事件）：
 > `cli_`（飞书 app_id 前缀）、`IMA_OPENAPI`（IMA 凭证环境变量名）、`FEISHU_APP`（飞书凭证环境变量名）、`APP_SECRET`（飞书/通用 secret）、`CLIENTID`/`APIKEY`（IMA v1.1.7 凭证）、`client_id`/`client_secret`（OAuth 通用凭证）
+
+> **v5.1 新增模式**（2026-07，支持 SkillHub 平台）：
+> `skh_`（SkillHub API Token 前缀，格式为 `skh_` + 64 位十六进制字符）
 
 **PASS criteria**: Only conceptual mentions in security documentation (e.g., "requests credentials" in a security checklist). No actual token values, API keys, or secrets. 环境变量名出现在 `.gitignore` 或配置说明文档中（如 `$env:FEISHU_APP_ID = "your_app_id"`）算 PASS，但出现真实值（如 `cli_a976385...`）算 FAIL。
 
@@ -28,6 +31,7 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 | **IMA 凭证硬编码**（v5.0） | `IMA_OPENAPI_CLIENTID = "CsiB_xxx"` | Replace with `"your_client_id_here"` |
 | **飞书凭证硬编码**（v5.0） | `FEISHU_APP_ID = "cli_a976..."` | Replace with `"your_app_id_here"` |
 | **Python 脚本含 Token**（v5.0） | `TOKEN = "ghp_xxx"` in upload scripts | Delete script, use env var `GH_TOKEN` |
+| **SkillHub Token 硬编码**（v5.1） | `SKILLHUB_TOKEN = "skh_25d6..."` in scripts/docs | Replace with `"your_skillhub_token_here"` or use `$env:SKILLHUB_TOKEN` |
 
 ### Layer 2: Local Path Scan
 

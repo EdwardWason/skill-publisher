@@ -496,7 +496,7 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 
 #### Layer 1: Credential Leak Scan
 
-**Grep pattern (v5.0 扩展)**: `token|api_key|api-key|secret|password|ghp_|gho_|ghs_|clh_|sk-|AKIA|cli_|IMA_OPENAPI|FEISHU_APP|APP_SECRET|CLIENTID|APIKEY|client_id|client_secret`
+**Grep pattern (v5.0 扩展)**: `token|api_key|api-key|secret|password|ghp_|gho_|ghs_|clh_|sk-|AKIA|cli_|IMA_OPENAPI|FEISHU_APP|APP_SECRET|CLIENTID|APIKEY|client_id|client_secret|skh_`
 
 > **v5.0 新增模式**（2026-07，源自 IMA/飞书凭证泄露事件）：
 > `cli_`（飞书 app_id 前缀）、`IMA_OPENAPI`（IMA 凭证环境变量名）、`FEISHU_APP`（飞书凭证环境变量名）、`APP_SECRET`（飞书/通用 secret）、`CLIENTID`/`APIKEY`（IMA v1.1.7 凭证）、`client_id`/`client_secret`（OAuth 通用凭证）

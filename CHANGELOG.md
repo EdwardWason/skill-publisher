@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.1.0] - 2026-07-11
+
+### Added
+- **platform**: 新增 SkillHub 平台同步发布支持 — 三平台同步（GitHub + ClawHub + SkillHub）
+- **frontmatter**: SKILL.md frontmatter 兼容 SkillHub 5 字段（slug/displayName/version/summary/license），与 ClawHub 字段共存
+- **publish**: SkillHub dry-run 预检 — `skillhub publish <path> --dry-run` 发布前格式检查
+- **security**: 凭证扫描新增 `skh_` 前缀（SkillHub API Token）
+- **rules**: 规则从 12 条扩展到 15 条（新增规则 13-15：SkillHub frontmatter、dry-run 预检、SKILLHUB_TOKEN 保护）
+- **workflow**: 执行流程从 6 步扩展到 7 步（新增 Step 6 SkillHub 发布）
+- **docs**: 新建 `references/skillhub-publishing.md` — SkillHub CLI 安装、登录、frontmatter 兼容、dry-run、Windows 兼容、故障排查
+- **troubleshooting**: 新增 6 个 SkillHub 故障案例（command not found、exit code 9009、401/403/409/429 错误）
+
+### Changed
+- **SKILL.md**: frontmatter 新增 slug/displayName/version/summary/license 字段
+- **SKILL.md**: description 更新为"三平台同步推送 GitHub + ClawHub + SkillHub"
+- **SKILL.md**: 输出格式发布结果表格新增 SkillHub 行
+- **platform**: 从双平台（GitHub + ClawHub）升级为三平台（GitHub + ClawHub + SkillHub）
+
+### Windows Compatibility
+- **skillhub CLI**: Windows 上 `python3` 是 Store stub（exit code 9009），需用 `python` 或 `C:\Python313\python.exe` 直接调用 `skills_store_cli.py`
+- **PowerShell**: `$env:SKILLHUB_TOKEN` 在参数传递时可能被吞，login 命令需直接用 token 值
+
 ## [5.0.0] - 2026-07-11
 
 ### Breaking Changes

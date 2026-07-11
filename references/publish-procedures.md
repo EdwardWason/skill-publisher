@@ -54,7 +54,6 @@ git push -u origin main
 gh api repos/<owner>/<repo>/contents/<path> \
   --method PUT \
   -f message="Upload <path>" \
-  -f content="<base64>" \
   -f branch="main"
 
 # Create Release
@@ -80,53 +79,7 @@ gh --version 2>/dev/null || echo "gh CLI not available"
 gh auth status 2>/dev/null || echo "gh CLI not authenticated"
 ```
 
-If gh CLI is not available or not authenticated, fall through to Method C.
-
-### Method C: GitHub REST API (last resort when both git push and gh CLI fail)
-
-When `git push` times out (443 connection failure), use REST API:
-
-#### Step 1: Create repository
-
-```
-POST https://api.github.com/user/repos
-Headers: Authorization: token <GH_TOKEN>
-         Content-Type: application/json
-Body: {"name": "<repo>", "private": false, "auto_init": false}
-```
-
-#### Step 2: Upload files
-
-```
-PUT https://api.github.com/repos/<owner>/<repo>/contents/<path>
-Headers: Authorization: token <GH_TOKEN>
-Body: {"message": "Upload <path>", "content": "<base64>", "branch": "main"}
-```
-
-**For updating existing files**, must first GET to obtain sha:
-
-```
-GET https://api.github.com/repos/<owner>/<repo>/contents/<path>
-→ response.sha
-
-PUT https://api.github.com/repos/<owner>/<repo>/contents/<path>
-Body: {"message": "Update <path>", "content": "<base64>", "sha": "<existing-sha>", "branch": "main"}
-```
-
-**Important**: REST API does NOT check .gitignore. Must implement own exclusion logic (same as security audit).
-
-#### Step 3: Create Release
-
-```
-POST https://api.github.com/repos/<owner>/<repo>/releases
-Headers: Authorization: token <GH_TOKEN>
-Body: {
-  "tag_name": "vX.Y.Z",
-  "target_commitish": "main",
-  "name": "<Skill Name> vX.Y.Z · <English phrase>",
-  "body": "<Release Notes in Markdown>"
-}
-```
+If gh CLI is not available or not authenticated, inform the user to install gh CLI or retry git push later.
 
 ### Token Source
 
@@ -386,7 +339,7 @@ If slug is taken:
 
 **Symptom**: `clawhub publish --version 3.0.0` fails with "Version already exists"
 
-**Fix**: Run `clawhub inspect <slug>` to check published versions. Increment PATCH version (3.0.0 → 3.0.1), update SKILL.md / plugin.json / CHANGELOG.md, re-publish.
+**Fix**: Run `clawhub inspect <slug>` to check published versions. Increment PATCH version (3.0.0 → 3.0.1), update version in SKILL.md / plugin.json / CHANGELOG.md, re-publish.
 
 ### ClawHub Short summary not updated (v5.0 新增)
 

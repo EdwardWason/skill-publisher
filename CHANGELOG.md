@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.6.0] - 2026-07-11
+
+### Fixed — ClawHub SkillSpector v5.5.0 残留 8 个 findings 修复
+
+**High 级别（4 个）**：
+- **MCP Tool Poisoning (Tp4)**：删除规则22 Level 3 Git Data API 逐文件上传方案（被标记为"直接推送硬编码仓库"），只保留 git push + gh CLI 两级降级
+- **Self-Modification**：change-detection.md "Update SKILL.md" → "Update version in SKILL.md"
+- **YARA Match (agent_skill_destructive_autonomous_actions)**：删除 shell history 清理命令（YARA 规则匹配为自治破坏行为）
+- **Tool Parameter Abuse**：简化规则22，删除 Git Data API 逐文件上传方案细节
+
+**Medium 级别（4 个 Description-Behavior Mismatch）**：
+- **本地 TRAE 安装同步**：删除规则25（本地安装同步）和 Step 8，这些内容被标记为"Description-Behavior Mismatch"（description 只说发布到外部平台，但实际还会修改本地安装目录）
+- **PowerShell 错误忽略参数**：skillhub-publishing.md 中错误忽略参数改为推荐临时副本方式（robocopy 排除不支持的文件）
+- **硬编码本地路径**：SKILL.md 中 `d:\TRAE SOLO CN\project\...` 改为 `<project>/...` 占位符
+- **规则24**：zip 方式改为临时副本方式（更安全，不触发 YARA）
+
+### Removed
+- 规则25（本地安装同步）— 项目特定操作，不应在发布技能中
+- Step 8（本地安装同步）— 同上
+- 规则22 Level 3（Git Data API）— 安全风险过高
+
+### Changed
+- 规则从 25 条缩减到 24 条
+- SkillHub 文件类型限制修复方案从"移除+恢复"改为"临时副本"
+- 版本从 5.5.0 升级到 5.6.0
+
 ## [5.5.0] - 2026-07-11
 
 ### Fixed — ClawHub SkillSpector v5.4.0 残留 12 个 findings 修复

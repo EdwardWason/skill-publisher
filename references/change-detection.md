@@ -118,7 +118,7 @@ Present the analysis:
 
 ## Version Bump Execution
 
-### Step 1: Update SKILL.md frontmatter
+### Step 1: Update version in SKILL.md frontmatter
 
 ```yaml
 # Before

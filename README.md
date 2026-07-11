@@ -11,13 +11,15 @@
 
 ---
 
-_「说一句'发布'，从本地 Skill 到 GitHub + ClawHub 全线就位。」_
+_「说一句'技能发布'，从本地 Skill 到 GitHub + ClawHub 全线就位。」_
 
 ---
 
 **Skill Publisher** 不是手动 git push 的备忘录，是从 Skill 开发完成到线上发布的全流程自动化工具。它同时支持**新建发布**和**迭代更新**两种工作流，覆盖仓库结构生成、安全审查、变更检测、自动版本 bump、CHANGELOG 生成、推送降级、Release 创建、ClawHub 发布的完整链路。
 
 ---
+
+> ⚠️ **重要提示**：本工具会修改 Git 仓库、创建 GitHub Release、发布到 ClawHub/SkillHub 外部平台。这些操作对外可见且可能不可逆，请确认后再执行。
 
 ## 效果
 
@@ -65,19 +67,19 @@ git clone https://github.com/EdwardWason/skill-publisher.git
 ```
 
 ```
-更新 react-design-draft
+更新技能 react-design-draft
 ```
 
 ```
-迭代 skill-publisher
+迭代技能 skill-publisher
 ```
 
 ## 常见使用场景
 
 | 场景 | 工作流 | 触发词 |
 |------|--------|--------|
-| 新 Skill 开发完成，首次发布 | 工作流 A | "发布"/"新建"/"publish" |
-| 已有 Skill 增加了新功能 | 工作流 B | "更新"/"迭代"/"update" |
+| 新 Skill 开发完成，首次发布 | 工作流 A | "技能发布"/"新建技能"/"技能发布" |
+| 已有 Skill 增加了新功能 | 工作流 B | "更新技能"/"迭代技能"/"更新技能" |
 | 修复了 Skill 的 bug | 工作流 B | "更新技能，修了个 bug" |
 | 重写了 Skill 的设计系统 | 工作流 B | "迭代技能，破坏性变更" |
 
@@ -86,10 +88,10 @@ git clone https://github.com/EdwardWason/skill-publisher.git
 ### 双工作流自动检测
 
 ```
-用户说"发布"/"新建"/"publish"?
+用户说"技能发布"/"新建技能"/"技能发布"?
   → 工作流 A: 仓库结构生成 → 安全审查 → 推送 → 发布
 
-用户说"更新"/"迭代"/"update"/"bump"?
+用户说"更新技能"/"迭代技能"/"更新技能"/"bump"?
   → 工作流 B: 变更检测 → 版本 bump → CHANGELOG → 安全审查 → 推送 → 发布
 ```
 

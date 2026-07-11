@@ -1,7 +1,7 @@
 {
   "name": "skill-publisher",
   "description": "One-click publish and iterate skills to GitHub + ClawHub with security audit, change detection, auto version bump, and changelog generation.",
-  "version": "5.3.0",
+  "version": "5.4.0",
   "author": { "name": "TRAE SOLO" },
   "homepage": "https://github.com/EdwardWason/skill-publisher",
   "repository": "https://github.com/EdwardWason/skill-publisher",

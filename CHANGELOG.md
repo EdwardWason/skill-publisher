@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.4.0] - 2026-07-11
+
+### Added
+- **规则21 GitHub token 有效性校验**：Step 0 新增 GitHub token 验证，401 时提示用户到 settings/tokens 重新生成
+- **规则22 GitHub 推送三级降级**：git push → gh CLI → GitHub Git Data API（Python urllib 逐文件上传），适用于 git push 持续超时但 API 可达的场景
+- **规则23 SkillHub 备份目录隔离**：临时移除的文件不能备份在 skill 目录内部（会被扫描报 400），必须备份到目录外或改用 zip 方式
+- **规则24 SkillHub 文件锁定 fallback**：Windows 文件被占用无法移除时，改用 Compress-Archive 打包 zip 发布
+- **Step 0 增强**：新增 GitHub token 有效性校验
+- **Step 4 增强**：三级降级机制，含 Git Data API 逐文件上传方案
+- **Windows 注意事项更新**：skillhub.bat python3 问题的修复方法
+
+### Changed
+- 规则从 20 条扩展到 24 条
+- 版本从 5.3.0 升级到 5.4.0
+- 源自 skill-forge v4.3 发布过程中的实战经验
+
 ## [5.2.0] - 2026-07-11
 
 ### Added
@@ -15,6 +31,26 @@ All notable changes to this project will be documented in this file.
 - 规则从 16 条扩展到 18 条
 - 版本从 5.1.0 升级到 5.2.0
 - 源自 skill-forge v4.2 TRACE 评测体系整合后的验证检查
+
+## [5.4.0] - 2026-07-11
+
+### Fixed — ClawHub SkillSpector 13 个 findings 修复
+
+**High 级别（3 个）**：
+- **Token Extraction**: 删除 publish-procedures.md 和 publishing-guide.md 中"从 git remote -v 提取 token"的指导，改为"Token MUST come from environment variable GH_TOKEN"
+- **命令行传 token 矛盾**: skillhub-publishing.md 故障排查中删除"直接用 token 值"建议，改为用 `[Environment]::GetEnvironmentVariable()` 读取
+- **Self-Modification**: 同 Token Extraction
+
+**Medium 级别（10 个）**：
+- **.gitignore 缺 config.local.json**: .gitignore 实际文件和 repo-structure.md 模板都加入 `config.local.json`
+- **触发词太宽泛（5 个）**: README.md/README.en.md 中 "publish"/"new"/"update"/"iterate" 改为 "技能发布"/"新建技能"/"更新技能"/"迭代技能"（英文版 "publish skill"/"new skill"/"update skill"/"iterate skill"）
+- **login --key 命令行传 token（2 个）**: skillhub-publishing.md 登录命令改为从环境变量 `$SKILLHUB_TOKEN` 读取，加安全警告
+- **README 缺用户警告（2 个）**: README.md/README.en.md 开头加"⚠️ 本工具会修改仓库、创建 Release、发布到外部平台"警告
+
+### Changed
+- skillhub-publishing.md 登录章节加安全规则块
+- publish-procedures.md Token Source 章节重写
+- publishing-guide.md Token Source 章节重写
 
 ## [5.3.0] - 2026-07-11
 

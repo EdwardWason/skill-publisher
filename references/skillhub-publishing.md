@@ -54,15 +54,20 @@ python "%USERPROFILE%\.skillhub\skills_store_cli.py" <command>
 
 ## 登录
 
-```bash
-# Mac/Linux
-skillhub login --key <token> --host https://api.skillhub.cn
+> ⚠️ **安全规则**：token 必须从环境变量 `SKILLHUB_TOKEN` 读取，禁止直接在命令行参数中传 token 值（会泄露到 shell history / process listing）。
 
-# Windows
-python "%USERPROFILE%\.skillhub\skills_store_cli.py" login --key <token> --host https://api.skillhub.cn
+```bash
+# Mac/Linux — 从环境变量读取
+skillhub login --key "$SKILLHUB_TOKEN" --host https://api.skillhub.cn
+
+# Windows — 从环境变量读取（PowerShell）
+$token = [Environment]::GetEnvironmentVariable("SKILLHUB_TOKEN", "User")
+python "%USERPROFILE%\.skillhub\skills_store_cli.py" login --key $token --host https://api.skillhub.cn
 ```
 
-**Token 来源**：环境变量 `SKILLHUB_TOKEN`（token 格式：`skh_` 开头）
+**Token 来源**：环境变量 `SKILLHUB_TOKEN`（token 格式：`skh_` 开头，永久配置在 User scope）
+
+> ❌ **禁止**：`login --key "skh_xxx"` 直接传值 — 会泄露到 shell history、process listing、终端录制
 
 **验证登录**：
 
@@ -255,16 +260,20 @@ Remove-Item $backupPath -Recurse -Force
 
 ### `argument --key: expected one argument`（Windows PowerShell）
 
-**原因**：PowerShell 环境变量在参数传递时可能被吞掉。
+**原因**：PowerShell `$env:SKILLHUB_TOKEN` 在参数传递时可能被吞掉。
 
-**修复**：直接用 token 值，不用环境变量引用：
+**修复**：用 `[Environment]::GetEnvironmentVariable()` 读取，赋值到变量再传：
 
 ```powershell
-# 错误（$env:SKILLHUB_TOKEN 可能被吞）
+# 错误（$env: 可能被吞）
 python script.py login --key $env:SKILLHUB_TOKEN
 
-# 正确（直接用值）
-python script.py login --key "skh_xxx"
+# 正确（用 GetEnvironmentVariable 读取到变量）
+$token = [Environment]::GetEnvironmentVariable("SKILLHUB_TOKEN", "User")
+python script.py login --key $token --host https://api.skillhub.cn
+```
+
+> ❌ **禁止**：`login --key "skh_xxx"` 直接传值 — 会泄露到 shell history 和 process listing
 ```
 
 ## 参考链接

@@ -447,6 +447,7 @@ node_modules/
 .env
 .env.local
 .env.*.local
+config.local.json
 
 # OS
 .DS_Store

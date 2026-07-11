@@ -1,12 +1,12 @@
 {
   "name": "skill-publisher",
-  "description": "One-click publish and iterate skills to GitHub + ClawHub with security audit, change detection, auto version bump, and changelog generation.",
-  "version": "5.4.0",
+  "description": "One-click publish and iterate skills to GitHub + ClawHub + SkillHub with security audit, change detection, auto version bump, and changelog generation. Requires explicit publish intent.",
+  "version": "5.5.0",
   "author": { "name": "TRAE SOLO" },
   "homepage": "https://github.com/EdwardWason/skill-publisher",
   "repository": "https://github.com/EdwardWason/skill-publisher",
   "license": "MIT-0",
-  "keywords": ["skill", "publisher", "github", "clawhub", "release", "changelog", "version-bump"],
-  "triggers": ["发布技能", "publish skill", "更新技能", "迭代技能", "新建仓库"],
+  "keywords": ["skill", "publisher", "github", "clawhub", "skillhub", "release", "changelog", "version-bump"],
+  "triggers": ["技能发布到三平台", "发布技能更新", "迭代技能发布", "publish skill update", "publish skill iteration"],
   "skills": ["./"]
 }

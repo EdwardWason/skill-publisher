@@ -2,6 +2,50 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.2.0] - 2026-07-11
+
+### Added
+- **allowed-tools**: frontmatter 新增工具白名单声明（Bash(git/clawhub/skillhub/gh/python) + Read/Write/Edit/Glob/Grep），符合 TRACE T维度最小权限原则
+- **前置条件校验**（规则17）：发布前校验4项前置条件（目录存在/SKILL.md存在/平台登录态/Git配置），任何一项不满足 = 中止发布并明确告知用户缺什么、怎么修
+- **Skill 质量门禁**（规则18）：发布前快速检查 Skill 质量（SKILL.md行数/description存在性/description长度/Do NOT范围声明），不达标 = 拒绝发布并建议先修复
+- **Step 0**: 执行流程新增 Step 0 前置条件校验，在 Step 1 仓库结构生成之前执行
+- **示例模块**: 新增5个完整示例，覆盖1个常见输入 + 4个边界/异常输入（目录不存在/SKILL.md缺失/质量不达标/未登录），符合 TRACE R维度异常处理反馈要求
+
+### Changed
+- 规则从 16 条扩展到 18 条
+- 版本从 5.1.0 升级到 5.2.0
+- 源自 skill-forge v4.2 TRACE 评测体系整合后的验证检查
+
+## [5.3.0] - 2026-07-11
+
+### Added
+- **rule 19**: 复杂输入处理 — 未指明 Skill / 多 Skill / 路径模糊时先确认目标（TRACE R维度）
+- **rule 20**: SkillHub 发布前 TRACE 五维度预检 — T(信任)/R(可靠)/A(适用)/C(规范)/E(有效)，任何维度 FAIL 中止 SkillHub 发布
+- **examples 6-8**: 复杂输入示例（未指明/路径模糊/TRACE 预检失败）
+- **Step 6**: 加入 TRACE 预检步骤（规则20）
+
+### Changed
+- 规则从 18 条扩展到 20 条
+- summary 加入 "TRACE 预检" 关键词
+- SkillHub 发布流程从 5 步扩展到 6 步（新增 TRACE 预检）
+
+### Fixed
+- 修复 SkillHub 上仍显示 v5.1.0 的问题（v5.2.0 未推送三平台）
+- 修复 v5.2.0 已加 allowed-tools 和示例但未发布的问题
+
+## [5.2.0] - 2026-07-11
+
+### Added
+- **rule 17**: 前置条件校验（目录存在/SKILL.md存在/平台登录态/Git配置）
+- **rule 18**: Skill 质量门禁（SKILL.md行数/description/Do NOT声明）
+- **examples 1-5**: 常见输入 + 4 种边界/异常输入示例
+- **allowed-tools**: frontmatter 声明工具白名单
+- **Step 0**: 前置条件校验步骤
+
+### Changed
+- 规则从 16 条扩展到 18 条
+- 执行流程从 7 步扩展到 8 步（新增 Step 0）
+
 ## [5.1.0] - 2026-07-11
 
 ### Added

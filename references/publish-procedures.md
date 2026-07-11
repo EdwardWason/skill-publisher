@@ -364,6 +364,18 @@ __pycache__/
 ```
 Run `clawhub inspect <slug>` after publish to verify no `.pyc` files in distribution.
 
+### ClawHub 多版本共存（v5.7 新增）
+
+**Symptom**: ClawHub 页面同时显示多个版本（如 v5.4.0 和 v5.5.0 并存），用户疑惑为什么旧版本还在
+
+**Explanation**: 这是 ClawHub 平台的正常行为，不是 bug。同一 slug 可以有多个版本共存：
+- 新版本发布后自动成为 `latest`
+- 旧版本无法删除，会一直保留
+- 用户安装时默认获取 `latest` 版本
+- `clawhub inspect <slug>` 的 versions 字段会列出所有已发布版本
+
+**Action**: 无需处理。如果用户询问，解释这是平台行为，最新版本已自动设为 `latest`。
+
 ### IMA/Feishu credentials leaked in reference docs (v5.0 新增)
 
 **Symptom**: Security scan finds `cli_a976...` or `IMA_OPENAPI_APIKEY = "CsiB_xxx"` in reference documents

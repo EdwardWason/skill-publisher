@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.7.0] - 2026-07-11
+
+### Added — ClawHub SkillSpector 预扫描能力沉淀
+- **新增规则25：ClawHub SkillSpector 预扫描**：发布到 ClawHub 前执行 5 项预扫描（YARA 触发词、Description-Behavior Mismatch、安全敏感方案不文档化、Self-Modification 措辞、CHANGELOG 历史记录扫描），源自 v5.4-v5.6 三轮 finding 修复经验
+- **security-audit.md 新增 Layer 4：YARA 触发词扫描**：扫描"自治破坏行为"字面量类别（shell history 清理、PowerShell 错误忽略参数、递归强制删除、权限放宽、输出重定向到空设备），覆盖所有文件含 CHANGELOG 历史记录
+- **publish-procedures.md 故障排查新增 ClawHub 多版本共存说明**：同一 slug 多版本并存是平台正常行为，新版本自动成为 latest，旧版本无法删除
+
+### Changed
+- 规则1：三类安全扫描 → 四类安全扫描（新增 YARA 触发词扫描）
+- 规则2：扩展为"安全修复必须同步中英文版"，否则 SkillSpector 因英文版残留重复报 findings
+- Step 2 安全审查：三类扫描 → 四类扫描，新增 ClawHub SkillSpector 预扫描（规则25）
+- security-audit.md Scan Execution：三类 → 四类
+
+### 关键教训
+- YARA 规则是字面量匹配，不是语义分析：文档中写"不要使用 XXX"也会触发匹配，正确做法是用类别描述指代
+- SkillSpector 扫描所有文件含 CHANGELOG 历史记录：历史条目中的触发词也需重新措辞
+- Description-Behavior Mismatch：description 与实际行为不一致会被标记为"欺骗性能力披露"
+- 安全敏感方案不要文档化：API 逐文件上传方案写在文档中会被标记为 MCP Tool Poisoning
+
 ## [5.6.0] - 2026-07-11
 
 ### Fixed — ClawHub SkillSpector v5.5.0 残留 8 个 findings 修复

@@ -3,7 +3,7 @@ name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布到三平台/发布技能更新/迭代技能发布 时触发。⚠️ 本技能会推送代码到外部平台（GitHub/ClawHub/SkillHub），操作对外可见且可能不可逆，执行前会向用户确认。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
 displayName: Skill Publisher
-version: 5.6.0
+version: 5.7.0
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。执行前向用户确认。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
@@ -64,8 +64,8 @@ allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash
 | SkillHub | slug | vX.Y.Z | 成功/失败 |
 
 ## 规则
-1. 发布前必须执行三类安全扫描，任何 FAIL = 阻止发布
-2. README 必须中英双语，Badge 用中文标签
+1. 发布前必须执行四类安全扫描（凭证/路径/危险命令/YARA 触发词），任何 FAIL = 阻止发布
+2. README 必须中英双语，Badge 用中文标签。**安全修复必须同步中英文版**：中文版修改了什么安全相关内容，英文版必须同步修改，否则 ClawHub SkillSpector 会因英文版残留问题重复报 findings（2026-07 新增，源自 v5.4.0 英文版漏改事件）
 3. ClawHub 发布前必须先 `clawhub inspect <slug>` 检查 slug 占用
 4. **ClawHub 发布前必须查重版本号**：`clawhub inspect <slug>` 查看已发布版本列表，待发布版本号不能与已发布版本重复，重复则递增 PATCH
 5. Windows 环境禁止使用 heredoc 语法
@@ -115,6 +115,12 @@ allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash
 24. **SkillHub 文件锁定 fallback**（v5.4 新增）：Windows 上文件可能被其他进程占用导致无法移除，此时改用临时副本方式发布：
     - 移除文件失败（Access denied / being used by another process）→ 用 robocopy 复制到临时目录，在副本中删除不支持的文件，发布副本，发布后删除副本
     - 临时副本目录必须在 skill 目录外，避免被扫描
+25. **ClawHub SkillSpector 预扫描**（v5.7 新增，源自 v5.4-v5.6 三轮 finding 修复经验）：发布到 ClawHub 前，必须对 skill 目录执行以下 5 项预扫描，任何一项 FAIL = 中止发布并修复。SkillSpector 会扫描所有发布文件（含 CHANGELOG 历史记录），不限于 SKILL.md：
+    - **YARA 触发词扫描**：扫描 shell history 清理命令、PowerShell 错误忽略参数、递归强制删除、权限放宽等"自治破坏行为"字面量。这些字符串即使在文档说明中出现也会触发 YARA 规则 `agent_skill_destructive_autonomous_actions`。详见 `references/security-audit.md` Layer 4
+    - **Description-Behavior Mismatch**：frontmatter description 必须与 skill 实际行为一致。如果 description 只说"发布到外部平台"，就不能有"修改本地安装目录"的规则；如果有本地修改行为，description 必须明确披露
+    - **安全敏感方案不文档化**：不要在文档中描述绕过网络限制的 API 逐文件上传方案（含 blob/tree/commit/refs 链）、base64 编码上传等方案。SkillSpector 会标记为 MCP Tool Poisoning / Tool Parameter Abuse。实际执行时可使用，但不要写进文档
+    - **Self-Modification 措辞**：避免"update SKILL.md"这类自修改措辞，改为"Update version in SKILL.md"等具体动作。SkillSpector 会标记为 Rogue Agent Self-Modification
+    - **CHANGELOG 历史记录扫描**：CHANGELOG.md 的历史条目也会被扫描。如果历史条目包含 YARA 触发词，必须重新措辞（用类别描述替代字面量）
 
 ## 执行流程
 
@@ -127,7 +133,7 @@ allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash
 生成标准目录：SKILL.md / README.md(中英双语) / CHANGELOG.md / LICENSE(MIT-0) / .gitignore / .claude-plugin/plugin.json。确认作者名、GitHub owner、版本号、ClawHub slug、SkillHub slug。SKILL.md frontmatter 必须同时包含 ClawHub 字段（name/description）和 SkillHub 字段（slug/displayName/version/summary/license）。
 
 ### Step 2: 安全审查
-三类扫描（凭证/路径/危险命令），全部 PASS 才能继续。凭证扫描必须覆盖 `skh_` 前缀（SkillHub token）。分发物三维判定 + ClawHub slug 检查 + ClawHub 自动文件排除 + SkillHub slug 全网唯一性检查。
+四类扫描（凭证/路径/危险命令/YARA 触发词），全部 PASS 才能继续。凭证扫描必须覆盖 `skh_` 前缀（SkillHub token）。分发物三维判定 + ClawHub slug 检查 + ClawHub 自动文件排除 + SkillHub slug 全网唯一性检查 + ClawHub SkillSpector 预扫描（规则25）。
 
 ### Step 3: 版本号查重
 - ClawHub：`clawhub inspect <slug>` 查看已发布版本列表，确认待发布版本号不重复。重复则递增 PATCH 后重新确认。

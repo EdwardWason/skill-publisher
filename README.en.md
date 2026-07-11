@@ -11,7 +11,7 @@
 
 ---
 
-_"Say 'publish skill' — from local Skill to GitHub + ClawHub, fully deployed."_
+_"From local Skill to three-platform deployment — security audit first, every step confirmed with you."_
 
 ---
 
@@ -56,38 +56,42 @@ clawhub install skill-publisher-ai
 git clone https://github.com/EdwardWason/skill-publisher.git
 ```
 
-After installation, tell your Agent:
+After installation, tell your Agent (must express clear intent to publish to external platforms):
 
 ```
 Publish wx-peitu to GitHub and ClawHub
 ```
 
 ```
-Update skill react-design-draft
+Publish skill update react-design-draft
 ```
 
 ```
-Iterate skill skill-publisher
+Publish skill iteration skill-publisher
 ```
 
 ## Common Use Cases
 
-| Scenario | Workflow | Trigger |
+> ⚠️ **Precondition**: The following triggers only activate when the user explicitly requests publishing to external platforms. A simple "update skill" (meaning modify content) does NOT trigger this skill.
+
+| Scenario | Workflow | Trigger (requires publish intent) |
 |----------|----------|---------|
-| New Skill completed, first publish | Workflow A | "publish skill"/"new skill" |
-| Existing Skill added new features | Workflow B | "update skill"/"iterate skill" |
-| Fixed a Skill bug | Workflow B | "update skill, fixed a bug" |
-| Rewrote Skill design system | Workflow B | "iterate skill, breaking change" |
+| New Skill completed, first publish | Workflow A | "publish skill to platforms"/"publish skill to GitHub" |
+| Existing Skill added new features | Workflow B | "publish skill update"/"publish skill iteration" |
+| Fixed a Skill bug | Workflow B | "publish skill update, fixed a bug" |
+| Rewrote Skill design system | Workflow B | "publish skill iteration, breaking change" |
 
 ## Core Mechanism
 
 ### Dual Workflow Auto-Detection
 
+> ⚠️ The following triggers only activate when the user explicitly requests publishing to external platforms.
+
 ```
-User says "publish skill"/"new skill"?
+User says "publish skill to platforms"/"publish skill to GitHub"?
   → Workflow A: Repo structure → Security audit → Push → Publish
 
-User says "update skill"/"iterate skill"/"bump"?
+User says "publish skill update"/"publish skill iteration"?
   → Workflow B: Change detection → Version bump → CHANGELOG → Security audit → Push → Publish
 ```
 

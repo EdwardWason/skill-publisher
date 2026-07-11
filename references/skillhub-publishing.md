@@ -54,20 +54,22 @@ python "%USERPROFILE%\.skillhub\skills_store_cli.py" <command>
 
 ## 登录
 
-> ⚠️ **安全规则**：token 必须从环境变量 `SKILLHUB_TOKEN` 读取，禁止直接在命令行参数中传 token 值（会泄露到 shell history / process listing）。
-
-```bash
-# Mac/Linux — 从环境变量读取
-skillhub login --key "$SKILLHUB_TOKEN" --host https://api.skillhub.cn
-
-# Windows — 从环境变量读取（PowerShell）
-$token = [Environment]::GetEnvironmentVariable("SKILLHUB_TOKEN", "User")
-python "%USERPROFILE%\.skillhub\skills_store_cli.py" login --key $token --host https://api.skillhub.cn
-```
+> ⚠️ **安全说明**：SkillHub CLI 的 `login` 命令要求通过 `--key` 参数传递 token。即使 token 从环境变量读取，`--key` 参数仍会出现在 process listing 中。这是 CLI 设计的限制，无法完全避免。建议在受控环境（非共享主机）执行 login，执行后清理 shell history。
 
 **Token 来源**：环境变量 `SKILLHUB_TOKEN`（token 格式：`skh_` 开头，永久配置在 User scope）
 
-> ❌ **禁止**：`login --key "skh_xxx"` 直接传值 — 会泄露到 shell history、process listing、终端录制
+```bash
+# Mac/Linux — 从环境变量读取（避免 token 出现在命令本身）
+skillhub login --key "$SKILLHUB_TOKEN" --host https://api.skillhub.cn
+# 执行后清理 history: history -c && history -w
+
+# Windows — 从环境变量读取到临时变量
+$token = [Environment]::GetEnvironmentVariable("SKILLHUB_TOKEN", "User")
+python "$env:USERPROFILE\.skillhub\skills_store_cli.py" login --key $token --host https://api.skillhub.cn
+Remove-Variable token  # 清除临时变量
+```
+
+> ❌ **绝对禁止**：`login --key "skh_real_token_value"` — 在命令中直接写死真实 token 值会被永久记录到 shell history、脚本文件、日志中
 
 **验证登录**：
 
@@ -169,9 +171,9 @@ python "%USERPROFILE%\.skillhub\skills_store_cli.py" publish <path> --changelog 
 
 ### Token 保护
 
-- **SKILLHUB_TOKEN 不可硬编码**：只通过环境变量传递
+- **SKILLHUB_TOKEN 不可硬编码到脚本或文档**：只通过环境变量传递
 - **安全扫描必须检查 `skh_` 前缀**：扫描 `skh_[a-f0-9]{64}` 模式的硬编码值
-- **login 命令不在日志中输出 token**：token 通过环境变量传入，不出现在命令行参数中
+- **login 命令的 --key 参数限制**：SkillHub CLI 要求 `--key` 传 token，即使从环境变量读取，token 仍会短暂出现在 process listing 中。缓解措施：在受控环境执行、执行后清理 history、不在共享主机上运行
 
 ### 环境变量配置
 
@@ -262,18 +264,16 @@ Remove-Item $backupPath -Recurse -Force
 
 **原因**：PowerShell `$env:SKILLHUB_TOKEN` 在参数传递时可能被吞掉。
 
-**修复**：用 `[Environment]::GetEnvironmentVariable()` 读取，赋值到变量再传：
+**修复**：用 `[Environment]::GetEnvironmentVariable()` 读取到临时变量，传完后清除：
 
 ```powershell
-# 错误（$env: 可能被吞）
-python script.py login --key $env:SKILLHUB_TOKEN
-
-# 正确（用 GetEnvironmentVariable 读取到变量）
+# 用 GetEnvironmentVariable 读取到临时变量
 $token = [Environment]::GetEnvironmentVariable("SKILLHUB_TOKEN", "User")
 python script.py login --key $token --host https://api.skillhub.cn
+Remove-Variable token  # 清除临时变量
 ```
 
-> ❌ **禁止**：`login --key "skh_xxx"` 直接传值 — 会泄露到 shell history 和 process listing
+> ⚠️ **CLI 限制**：SkillHub CLI 要求 `--key` 传 token，无法完全避免 process listing 暴露。建议在受控环境执行。绝对禁止把真实 token 值写死在脚本或命令中。
 ```
 
 ## 参考链接

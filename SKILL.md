@@ -3,7 +3,7 @@ name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布到三平台/发布技能更新/迭代技能发布 时触发。⚠️ 本技能会推送代码到外部平台（GitHub/ClawHub/SkillHub），操作对外可见且可能不可逆，执行前会向用户确认。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
 displayName: Skill Publisher
-version: 5.5.0
+version: 5.6.0
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。执行前向用户确认。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
@@ -101,30 +101,20 @@ allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash
     - **C（Compliance 规范）**：Schema 检查 — 4 模块齐全（任务/输出格式/规则/示例）+ SKILL.md ≤200 行 + 示例含边界情况 + 规则通过实习生测试
     - **E（Effectiveness 有效）**：增量价值 — Skill 相比手动操作有明显增益（如自动化安全审查、版本号查重等）
 21. **GitHub token 有效性校验**（v5.4 新增）：Step 0 前置条件校验中，必须验证 GitHub token 是否有效：
-    - 用 `Invoke-RestMethod -Uri "https://api.github.com/user" -Headers @{Authorization="token $env:GH_TOKEN"}` 验证
-    - 返回 401 → 报"GitHub token 已失效，请到 https://github.com/settings/tokens 重新生成，并更新环境变量 GH_TOKEN"
+    - 用 GitHub API `/user` 端点验证 token（通过环境变量 GH_TOKEN 读取，不硬编码）
+    - 返回 401 → 报"GitHub token 已失效，请到 GitHub Settings → Tokens 重新生成，并更新环境变量 GH_TOKEN"
     - 返回 200 → token 有效，继续发布
     - 网络超时 → 跳过验证，尝试推送时再降级处理
-22. **GitHub 推送三级降级**（v5.4 新增）：git push 失败时，按顺序降级：
+22. **GitHub 推送降级**（v5.4 新增）：git push 失败时，按顺序降级：
     - **Level 1 - git push**：直接推送，超时30秒自动失败
     - **Level 2 - gh CLI**：如果 gh 命令可用，用 `gh repo sync` 或 `gh api` 推送
-    - **Level 3 - GitHub Git Data API**：用 Python urllib 调用 `/repos/{owner}/{repo}/git/blobs` + `/git/trees` + `/git/commits` + `/git/refs` 逐文件上传，适用于 git push 持续超时但 API 可达的场景
-    - Level 3 实现要点：base64 编码文件内容 → 创建 blob → 基于 base_tree 创建新 tree → 创建 commit → 更新 refs/heads/main
+    - 如果两级都失败，告知用户网络问题，建议稍后重试或手动推送
 23. **SkillHub 备份目录隔离**（v5.4 新增）：临时移除的不支持文件（规则16）不能备份在 skill 目录内部，否则会被 SkillHub 扫描到并报 400 错误：
-    - ✅ 正确：备份到 skill 目录外，如 `d:\TRAE SOLO CN\project\_skill_backup\`
+    - ✅ 正确：备份到 skill 目录外（如父目录下的临时文件夹）
     - ❌ 错误：备份到 `skill-dir/_backup/`（会被扫描）
-    - 或者：用 zip 方式发布，只打包支持的文件，避免移除操作
-24. **SkillHub 文件锁定 fallback**（v5.4 新增）：Windows 上文件可能被其他进程占用导致无法移除，此时改用 zip 方式发布：
-    - 移除文件失败（Access denied / being used by another process）→ 改用 `Compress-Archive` 只打包支持的文件为 zip
-    - `skillhub publish <zip-path>` 支持 .zip 输入
-    - zip 内只包含：SKILL.md / README.md / CHANGELOG.md / references/ 等支持的文件
-    - 发布后自动清理临时 zip 文件
-25. **本地安装同步**（v5.4 新增）：三平台发布完成后，必须将开发目录的技能同步到 TRAE 本地安装目录 `c:\Users\Administrator\.trae-cn\skills\`：
-    - 用 `python "d:\TRAE SOLO CN\project\sync_skills.py" <skill-dir-name> --force` 同步
-    - Python shutil 不受 TRAE PowerShell 安全包装器限制，可直接操作 .trae-cn 目录
-    - **不执行此步骤会导致其他任务调用旧版技能**（TRAE 从安装目录加载技能，不从开发目录加载）
-    - 同步脚本自动排除 .git / .gitignore / .clawhub / __pycache__ 等不需要的文件
-    - 支持批量同步：`python sync_skills.py` 同步所有技能；`python sync_skills.py --list` 预览
+24. **SkillHub 文件锁定 fallback**（v5.4 新增）：Windows 上文件可能被其他进程占用导致无法移除，此时改用临时副本方式发布：
+    - 移除文件失败（Access denied / being used by another process）→ 用 robocopy 复制到临时目录，在副本中删除不支持的文件，发布副本，发布后删除副本
+    - 临时副本目录必须在 skill 目录外，避免被扫描
 
 ## 执行流程
 
@@ -183,17 +173,6 @@ skillhub publish <path-or-zip> --changelog "变更说明"
 ### Step 7: 发布后验证
 GitHub 文件列表检查 + `clawhub inspect <slug>` 确认 + SkillHub 状态检查。检查 ClawHub Short summary 是否与 frontmatter description 一致，不一致则递增版本号重新发布。
 
-### Step 8: 本地安装同步（v5.4 新增，规则25）
-三平台发布完成后，必须将开发目录的技能同步到 TRAE 本地安装目录，确保其他任务调用时使用最新版本：
-```bash
-# 用 Python 同步（绕过 PowerShell 安全限制）
-python "d:\TRAE SOLO CN\project\sync_skills.py" <skill-dir-name> --force
-```
-- 同步脚本路径：`d:\TRAE SOLO CN\project\sync_skills.py`
-- 开发目录 → 安装目录映射：脚本自动从 frontmatter slug 读取，特殊情况见 DIR_MAPPING
-- 排除文件：.git / .gitignore / .clawhub / __pycache__ / _backup 等不同步
-- **不执行此步骤会导致其他任务调用旧版技能**（源自 skill-forge v4.3 发布后仍被调用 v4.0 的事件）
-
 ## 示例
 
 ### 示例1：常见输入（完整 Skill 目录发布）
@@ -201,7 +180,7 @@ python "d:\TRAE SOLO CN\project\sync_skills.py" <skill-dir-name> --force
 **用户输入**："帮我把 wx-peitu 技能发布到三平台，版本号 7.1.0"
 
 **前置条件校验**：
-- ✅ 目录 `d:\TRAE SOLO CN\project\wx-peitu` 存在且非空
+- ✅ 目录 `<project>/wx-peitu` 存在且非空
 - ✅ SKILL.md 存在
 - ✅ ClawHub 已登录（clawhub whoami 通过）
 - ✅ SkillHub 已登录（skillhub auth whoami 通过）
@@ -238,7 +217,7 @@ python "d:\TRAE SOLO CN\project\sync_skills.py" <skill-dir-name> --force
 
 **前置条件校验失败**：
 ```
-❌ 目录不存在或为空：d:\TRAE SOLO CN\project\my-new-skill
+❌ 目录不存在或为空：`<project>/my-new-skill`
 请确认 Skill 路径，或使用完整路径指定。
 ```
 
@@ -293,9 +272,9 @@ python "d:\TRAE SOLO CN\project\sync_skills.py" <skill-dir-name> --force
 **扫描工作目录**：
 ```
 找到以下 Skill 目录：
-1. d:\TRAE SOLO CN\project\wx-peitu (含 SKILL.md)
-2. d:\TRAE SOLO CN\project\pic-book (含 SKILL.md)
-3. d:\TRAE SOLO CN\project\web-to-fim (含 SKILL.md)
+1. `<project>/wx-peitu` (含 SKILL.md)
+2. `<project>/pic-book` (含 SKILL.md)
+3. `<project>/web-to-fim` (含 SKILL.md)
 
 请指定要发布的 Skill 名称或序号，或回复"全部"发布所有 Skill。
 ```
@@ -308,7 +287,7 @@ python "d:\TRAE SOLO CN\project\sync_skills.py" <skill-dir-name> --force
 
 **搜索匹配目录**：
 ```
-找到 1 个匹配目录：d:\TRAE SOLO CN\project\wx-peitu
+找到 1 个匹配目录：`<project>/wx-peitu`
 自动使用此目录继续发布。
 ```
 

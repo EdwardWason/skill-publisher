@@ -59,9 +59,8 @@ python "%USERPROFILE%\.skillhub\skills_store_cli.py" <command>
 **Token 来源**：环境变量 `SKILLHUB_TOKEN`（token 格式：`skh_` 开头，永久配置在 User scope）
 
 ```bash
-# Mac/Linux — 从环境变量读取（避免 token 出现在命令本身）
+# Mac/Linux — 从环境变量读取
 skillhub login --key "$SKILLHUB_TOKEN" --host https://api.skillhub.cn
-# 执行后清理 history: history -c && history -w
 
 # Windows — 从环境变量读取到临时变量
 $token = [Environment]::GetEnvironmentVariable("SKILLHUB_TOKEN", "User")
@@ -233,25 +232,19 @@ Token 已被撤销或失效。重新创建 Token，再执行 `login`。
 - `.github/`（隐藏目录）
 - 其他无扩展名文件或 dotfile
 
-**修复**：发布前临时移除这些文件，发布后立即恢复：
+**修复**：推荐用临时副本方式发布，避免操作原文件：
 
 ```powershell
-# 备份并移除
-$skillPath = "d:\TRAE SOLO CN\project\skill-publisher"
-$backupPath = "d:\TRAE SOLO CN\project\_skillhub_backup"
-New-Item -ItemType Directory -Path $backupPath -Force
+# 用 robocopy 复制到临时目录（排除不支持的文件）
+$skillPath = "<your-skill-path>"
+$tempPath = "<parent-dir>\_skillhub_temp"
+robocopy $skillPath $tempPath /E /XD .git __pycache__ .clawhub .claude-plugin .github /XF .gitignore LICENSE
 
-Move-Item "$skillPath\.gitignore" "$backupPath\" -Force
-Move-Item "$skillPath\LICENSE" "$backupPath\" -Force
-Move-Item "$skillPath\.claude-plugin" "$backupPath\" -Force -ErrorAction SilentlyContinue
-Move-Item "$skillPath\.github" "$backupPath\" -Force -ErrorAction SilentlyContinue
+# 发布临时副本
+python "$env:USERPROFILE\.skillhub\skills_store_cli.py" publish $tempPath --changelog "xxx"
 
-# 发布
-python "%USERPROFILE%\.skillhub\skills_store_cli.py" publish $skillPath --changelog "xxx"
-
-# 立即恢复
-Move-Item "$backupPath\*" "$skillPath\" -Force
-Remove-Item $backupPath -Recurse -Force
+# 清理临时目录
+Remove-Item $tempPath -Recurse -Force
 ```
 
 > **重要**：ClawHub 和 GitHub 允许这些文件，只有 SkillHub 会拒绝。三平台发布时，SkillHub 发布步骤需要单独处理文件类型。

@@ -178,7 +178,7 @@ skill-publisher/
 ## FAQ
 
 **Does it support updating existing repos?**
-Yes. Say "update xxx" to trigger Workflow B — auto-detect changes, recommend version bump, generate CHANGELOG.
+Yes. Say "publish skill update" to trigger Workflow B — auto-detect changes, recommend version bump, generate CHANGELOG.
 
 **What if git push times out?**
 Auto-fallback: try gh CLI first (auto-auth), then REST API file-by-file upload.

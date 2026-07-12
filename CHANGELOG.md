@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.8.0] - 2026-07-12
+
+### Fixed — 4 SkillSpector findings
+- **Finding 1 (Low)**：删除"全部"批量发布选项，改为逐个确认。批量发布不可逆，逐个确认更安全
+- **Finding 2 (Medium)**：skillhub.bat 修复说明标注"用户手动环境配置，agent 不自动执行"，避免 Context-Inappropriate Capability
+- **Finding 3 (Medium)**：README.en.md FAQ 触发词从 "update xxx" 收紧为 "publish skill update"
+- **Finding 4 (Medium)**：change-detection.md 示例从"更新 wx-peitu"收紧为"发布技能更新 wx-peitu"
+
 ## [5.7.0] - 2026-07-11
 
 ### Added — ClawHub SkillSpector 预扫描能力沉淀

@@ -3,7 +3,7 @@ name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布到三平台/发布技能更新/迭代技能发布 时触发。⚠️ 本技能会推送代码到外部平台（GitHub/ClawHub/SkillHub），操作对外可见且可能不可逆，执行前会向用户确认。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
 displayName: Skill Publisher
-version: 5.7.0
+version: 5.8.0
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。执行前向用户确认。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
@@ -92,7 +92,7 @@ allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash
     - 无 `Do NOT` 范围声明 → 报"description 缺少 Do NOT 范围声明，可能导致误触发"
 19. **复杂输入处理**（v5.3 新增，TRACE R维度）：当用户未指明发布哪个 Skill，或工作目录下存在多个 Skill 时，必须先确认目标：
     - **未指明**：用户说"发布我的技能"但没说哪个 → 扫描工作目录下含 SKILL.md 的子目录，列出可用 Skill 让用户选择
-    - **多 Skill**：用户指定父目录，但其下有多个 Skill 子目录 → 列出所有 Skill，让用户选择一个或确认全部发布
+    - **多 Skill**：用户指定父目录，但其下有多个 Skill 子目录 → 列出所有 Skill，让用户逐个选择要发布的，不支持批量发布
     - **路径模糊**：用户说"发布 wx-peitu"但没给完整路径 → 在工作目录下搜索匹配的子目录，找到 1 个直接用，找到多个让用户选择，找到 0 个报错
 20. **SkillHub 发布前 TRACE 五维度预检**（v5.3 新增，核心规则）：发布到 SkillHub 前必须对目标 Skill 执行 TRACE 五维度自检，任何维度 FAIL = 中止 SkillHub 发布并报告问题。GitHub 和 ClawHub 不受此限制（这两个平台无 TRACE 检测）：
     - **T（Trust 信任）**：安全红线扫描（无 curl/wget/eval/凭证硬编码）+ frontmatter 有 allowed-tools 声明（可选）+ 国内可用性
@@ -172,7 +172,7 @@ skillhub publish <path-or-zip> --changelog "变更说明"
 # 6. 立即恢复被移除的文件 / 清理临时 zip
 ```
 
-> **Windows 注意**：如果 `skillhub` 命令报 exit code 9009，是因为 skillhub.bat 中调用了 `python3`（Windows 上只有 `python`）。修复方法：将 `C:\Users\<user>\.local\bin\skillhub.bat` 中的 `python3` 改为 `python`。或者直接用 `python "%USERPROFILE%\.skillhub\skills_store_cli.py"` 替代。
+> **Windows 注意**：如果 `skillhub` 命令报 exit code 9009，是因为 skillhub.bat 中调用了 `python3`（Windows 上只有 `python`）。建议用户手动修复：将 `C:\Users\<user>\.local\bin\skillhub.bat` 中的 `python3` 改为 `python`，或直接用 `python "%USERPROFILE%\.skillhub\skills_store_cli.py"` 替代。**此为用户手动环境配置，agent 不自动执行。**
 > **文件类型限制**：SkillHub 拒绝 `.gitignore`、`LICENSE`、`.claude-plugin/`、`.github/`，发布前必须临时移除，发布后立即恢复。
 > **TRACE 预检**：SkillHub 平台会对上架技能执行 TRACE 五维度检测，本技能在发布前预执行同样的检测，避免上架后被扣分。
 
@@ -282,7 +282,7 @@ GitHub 文件列表检查 + `clawhub inspect <slug>` 确认 + SkillHub 状态检
 2. `<project>/pic-book` (含 SKILL.md)
 3. `<project>/web-to-fim` (含 SKILL.md)
 
-请指定要发布的 Skill 名称或序号，或回复"全部"发布所有 Skill。
+请指定要发布的 Skill 名称或序号（逐个发布，不支持批量）。
 ```
 
 **等待用户选择后继续。**

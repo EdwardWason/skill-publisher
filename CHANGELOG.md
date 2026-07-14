@@ -2,6 +2,57 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.13.0] - 2026-07-14
+
+### Added — 规则25 扩展到 12 项 + 触发词精度 + 中英文一致性（源自 session-branch + kami 审计反馈）
+- **规则18 增强**：触发词泛化检测——新增中英文黑名单（branch/task/new/start + 画图/做个图/写文章等日常用语），命中黑名单 = Medium finding
+- **规则25 第2项增强**：Description-Behavior Mismatch 增加 description 模板建议，区分"核心能力"和"可选能力"
+- **规则25 第9项增强**：Missing User Warnings 覆盖范围扩展——从"自动推送外部服务"扩展到"写入项目本地文件"（session-branch Finding 6：写 docs/session-handoff.md 但没告知用户）
+- **规则25 新增第11项：Internal Consistency Check**：检测 SKILL.md 内部"禁止 X"和"要求 X"的自相矛盾指令（session-branch Finding 3：Critical rules 说不用绝对路径 vs Step 4 要求绝对路径）
+- **规则25 新增第12项：Sensitive File Scan Consent Check**：扫描敏感文件路径模式（~/SOUL.md/IDENTITY.md/MEMORY.md/config.json/credentials/memory/profile）时，必须有 consent 步骤（session-branch Finding 2/7：扫描 ~/.workbuddy/SOUL.md 但无用户同意）
+- **Step 2 增强**：中英文一致性自动检查——比对 README.md 和 README.en.md 的版本号/触发词数量/警告段落数量（kami 审计：英文版残留 v2.1.0 内容）
+- **规则25 标题更新**：10 项 → 12 项，新增 Medium finding 不阻断机制（只 WARN）
+
+## [5.12.0] - 2026-07-14
+
+### Added — 规则25 扩展 + 权限声明标准模板（源自 gongwen-formatter v1.1.2 审计反馈）
+- **规则18 增强**：权限声明段落增加 5 行表格标准模板（能力类别/是否使用/说明），统一各 skill 写法，降低作者负担
+- **规则25 第7项增强**：MCP Tool Poisoning 检查新增"代码 import 扫描对照"子检查——扫描 `*.py` 源码的 HTTP 客户端库 import（urllib.request/requests/http.client/aiohttp/httpx），与 SKILL.md description 声明对照。预防 Context-Inappropriate Capability finding（SkillSpector 不只针对 SSRF，还会针对"非声明网络的隐式外联"）
+- **规则25 新增第10项：Unpinned Dependencies 分级处理**：扫描 `requirements.txt`，`==`/`~=` PASS、`>=` WARN（不阻断）、无版本约束 FAIL。遵循 PIP 生态实践，`~=` 是平衡安全与兼容的推荐方案
+- **规则25 标题更新**：从 9 项扩展到 10 项，新增 WARN 级别机制（不阻断发布，只提示作者）
+- **Step 2 引用更新**：规则25 描述同步更新，包含 v5.12 新增的代码 import 扫描对照和依赖版本分级
+
+## [5.11.0] - 2026-07-12
+
+### Added — GitHub 同步可靠性增强（源自 skillhub-daily GitHub 漏更 40 天事件）
+- **规则21 改进**：401 时不再静默继续，询问用户是否中止发布修复 token 还是跳过 GitHub 继续发布其他平台（会记录待补推版本）
+- **新增规则26：GitHub 失败醒目警告**：发布末尾如果 GitHub 失败，必须用醒目警告重复提示，不能只埋在表格里
+- **新增规则27：待补推版本跟踪**：log.md 记录 GitHub 失败和待补推版本号；Step 0 先检查是否有历史未推送版本，有则优先补推
+- **新增规则28：三平台一致性校验**：发布后对比三平台版本号，不一致时醒目警告
+- **规则18 增强**：质量门禁新增"权限声明"和"用户警告"段落检查（MCP Least Privilege + Missing User Warnings 是高频 finding）
+- **Step 0 增强**：检查待补推版本
+- **Step 2 Pre-Scan 增强**：扫描 `_*.py`/`_*.ps1` 临时脚本（web-to-fim v3.3.0 教训：_gh_push.py 误上传导致 27 个 findings）
+- **Step 4.5 新增**：GitHub 推送后、ClawHub 发布前删除临时脚本
+- **Step 7 增强**：三平台一致性校验 + GitHub 失败醒目警告
+- **sync_skills.py 改进**：排除运行时文件（*.log/batch_*.txt/test_*.txt/_*.py/_*.ps1）+ 临时脚本 + 执行日志 + review 报告
+
+## [5.10.0] - 2026-07-12
+
+### Added — 持续学习机制 + token 读取增强
+- **Step 9 扩展**：从"只记录日志"扩展为"日志记录 + 经验采集 + 索引维护"，发布时扫描被发布技能的 docs/knowledge/，采集跨技能可复用经验，更新 docs/knowledge/INDEX.md
+- **Step 9 强制门**：日志记录是发布流程最后一个必做步骤，不可跳过（周度 review 显示日志覆盖率仅 25%）
+- **规则21 增强**：token 读取优先 Windows User scope registry，fallback 到 os.environ。TRAE shell session 会缓存环境变量快照，os.environ 可能读到旧值导致 401 误判。适用于 GH_TOKEN/SKILLHUB_TOKEN/CLAWHUB_TOKEN/FEISHU_APP_SECRET/IMA_OPENAPI_APIKEY 等所有凭证环境变量
+- **三层闭环沉淀机制**：经验采集层（事件驱动）+ 统一分析层（周期驱动）+ 主动注入层（触发驱动）
+
+## [5.9.0] - 2026-07-12
+
+### Added — 规则25 扩展 4 项预扫描（源自 skillhub-daily 17 个 findings 修复经验）
+- **SSD3 敏感数据派生输出扫描**：检查代码是否读取本地敏感文件并将派生内容写入持久化输出
+- **MCP Tool Poisoning 完整行为声明**：description 必须完整声明全部行为范围（网络/文件/记忆/subprocess）
+- **MCP Least Privilege 权限声明**：SKILL.md 或 plugin.json 必须声明权限
+- **Missing User Warnings 检查**：有副作用的 skill 必须在 README 中包含用户警告
+- security-audit.md 新增 Layer 5（4 类新扫描的详细规范）
+
 ## [5.8.0] - 2026-07-12
 
 ### Fixed — 4 SkillSpector findings

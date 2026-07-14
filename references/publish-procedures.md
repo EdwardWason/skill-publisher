@@ -85,6 +85,13 @@ If gh CLI is not available or not authenticated, inform the user to install gh C
 
 Token MUST come from environment variable `GH_TOKEN`. Do NOT extract tokens from git remotes or other project files.
 
+**TRAE session cache trap** (v5.10): TRAE shell sessions cache environment variable snapshots. After a user updates `GH_TOKEN` in User scope, the session does NOT auto-sync, so `os.environ.get('GH_TOKEN')` may return a stale value causing 401. To read the current value:
+
+- **Python**: `winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Environment')` + `winreg.QueryValueEx(k, 'GH_TOKEN')`, fallback to `os.environ.get('GH_TOKEN')` on registry read failure.
+- **PowerShell**: `[System.Environment]::GetEnvironmentVariable('GH_TOKEN','User')`.
+
+This applies to all credential env vars: `GH_TOKEN` / `SKILLHUB_TOKEN` / `CLAWHUB_TOKEN` / `FEISHU_APP_SECRET` / `IMA_OPENAPI_APIKEY`.
+
 ### Windows PowerShell Compatibility
 
 **Forbidden in PowerShell 5**:

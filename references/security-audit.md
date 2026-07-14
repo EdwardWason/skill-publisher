@@ -86,20 +86,147 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 
 > **关键教训**：YARA 规则是字面量匹配，不是语义分析。即使你在文档中写"不要使用 XXX 命令"，XXX 本身就会触发匹配。正确做法是用类别描述指代，不写字面量。
 
+### Layer 5: SSD3 + MCP + User Warnings Scan (v5.9 新增)
+
+> **背景**：2026-07-12 skillhub-daily 发布后收到 17 个 SkillSpector findings，其中 6 个是此前未遇到过的新模式。这些模式与 YARA 触发词不同，是语义分析而非字面量匹配。
+
+**4 类新扫描**：
+
+#### 5.1 SSD3 敏感数据派生输出
+
+**扫描内容**：检查 Python 脚本是否读取本地敏感文件（memory/profile/credentials/config），并将派生内容写入持久化输出（JSON/MD/日志）。
+
+**常见触发模式**：
+```python
+# 触发 SSD3：读取 memory 文件后将其内容写入 JSON
+user_keywords = load_user_memory_keywords()  # 读取 memory
+rec_data = {"memory_keywords": user_keywords}  # 派生数据写入 JSON
+json.dump(rec_data, f)  # 持久化
+```
+
+**PASS criteria**：输出文件中不包含从敏感文件派生的原始内容。只记录聚合统计量。
+
+**修复方式**：
+- 将 `{"memory_keywords": {kw: w, ...}}` 改为 `{"memory_keyword_count": N}`
+- 推荐理由中不暴露匹配的关键词，改为 generic 描述（如"记忆碰撞匹配（权重 N）"）
+- 输出日志中不打印关键词列表
+
+#### 5.2 MCP Tool Poisoning 完整行为声明
+
+**扫描内容**：frontmatter description 是否完整声明 skill 的全部行为。
+
+**触发条件**：description 只描述核心功能，但代码实际包含以下能力之一：
+- 读取本地文件（memory/profile/config）
+- 网络请求（urllib.request / subprocess CLI 调用）
+- subprocess 调用（subprocess.run / os.system）
+- 写入外部服务（API POST / 文件上传）
+
+**PASS criteria**：description 包含"本技能的行为范围"段落，列出全部行为。
+
+**修复方式**：在 description 中增加行为声明段落，例如：
+```
+本技能的行为范围（用户须知）：
+- 读取本地记忆文件提取关键词
+- 调用 CLI 工具获取数据（网络请求）
+- 将结果写入本地文件和外部服务
+```
+
+#### 5.3 MCP Least Privilege 权限声明
+
+**扫描内容**：SKILL.md 或 plugin.json 是否声明 skill 需要的权限。
+
+**触发条件**：代码实际使用了网络/文件/环境变量/subprocess，但 SKILL.md 和 plugin.json 均未声明。
+
+**PASS criteria**：SKILL.md 正文或 plugin.json 中包含权限声明。
+
+**修复方式**：在 SKILL.md 中增加权限声明段落：
+```
+权限声明：需要网络访问（API 调用）、本地文件读写（data 目录）、环境变量（XXX_YYY）
+```
+或在 plugin.json 中声明：
+```json
+"permissions": {
+  "network": true,
+  "filesystem": {"read": ["data/"], "write": ["data/output/"]},
+  "env_vars": ["API_KEY", "CONFIG_PATH"]
+}
+```
+
+#### 5.4 Missing User Warnings
+
+**扫描内容**：如果 skill 有副作用（自动推送/写入外部服务/定时执行），README 是否包含用户警告。
+
+**触发条件**：README 中描述了自动推送/定时执行/外部写入，但没有用户警告。
+
+**PASS criteria**：README 包含用户警告，明确告知副作用和禁用方式。
+
+**修复方式**：在 README 中增加警告段落：
+```
+> **用户须知**：运行本技能会自动将结果写入 [目的地列表]。如不需推送，使用 --skip-push 参数。
+```
+中英文 README 必须同步包含警告。
+
 ---
 
 ## Scan Execution
 
+### ⚠️ Critical: .gitignore Blind Spot (v5.8 新增)
+
+**Grep (ripgrep) 默认遵守 `.gitignore`，会跳过被忽略的文件。但 `clawhub publish` 上传整个目录，不看 `.gitignore`。** 这造成了一个致命盲区：`.gitignore` 中的凭证文件（如 `config.local.json`、`.env.local`）对 Grep 扫描"不可见"，但对 ClawHub 发布"完全可见"。
+
+**历史事故**（2026-07-12）：`references/config.local.json` 含真实飞书凭证，在 `.gitignore` 中（未进 GitHub），但被 `clawhub publish` 上传到 ClawHub 平台，导致凭证泄露。Grep 扫描报告 PASS，因为 ripgrep 跳过了该文件。
+
+### Pre-Scan: Mandatory File Listing (v5.8 新增)
+
+**在执行 Grep 扫描之前，必须先用 `LS` 工具列出技能目录的完整文件列表**（LS 不遵守 `.gitignore`，会显示所有文件）：
+
+```
+LS: <skill-directory> (ignore: ["**/.git/**", "**/__pycache__/**"])
+```
+
+**检查以下凭证文件是否存在于目录中**（存在 = FAIL，必须删除或移出目录）：
+
+| 文件名模式 | 说明 | 处理 |
+|-----------|------|------|
+| `config.local.json` | 本地凭证文件 | 删除或移出技能目录 |
+| `.env.local` / `.env` | 环境变量文件 | 删除或移出技能目录 |
+| `config.local.*.json` | 本地凭证变体 | 删除或移出技能目录 |
+| `_*.py` / `_*.ps1` | 临时脚本（`_` 前缀） | 删除 |
+| `*.log` | 日志文件 | 删除 |
+| `publish_*.ps1` / `publish_*.sh` | 维护者发布脚本 | 移出技能目录 |
+
+### Grep Scans (v5.8 修正)
+
+**Grep 工具的 `glob` 参数不能排除 `.gitignore` 中的文件。** 如果使用 TRAE 的 Grep 工具（基于 ripgrep），必须注意：
+
+1. **Grep 工具可能默认跳过 `.gitignore` 中的文件**——这是 ripgrep 的默认行为
+2. **对于已知凭证文件**（如 `config.local.json`），即使 Grep 扫描报告 PASS，也要通过 Pre-Scan 的 LS 检查确认文件不存在
+3. **如果技能目录中有 `config.local.json` 等凭证文件**，Grep 扫描结果不可信（因为 ripgrep 跳过了），必须依赖 LS 检查
+
 Run all four scans via Grep on the entire skill directory:
 
 ```
-1. Grep: credential pattern → check each match → PASS/FAIL
-2. Grep: local path pattern → check each match → PASS/FAIL
-3. Grep: dangerous command pattern → check each match → PASS/FAIL
-4. Grep: YARA trigger word categories (Layer 4) → check each match → PASS/FAIL
+1. LS: list all files (including .gitignore'd) → check for credential files → PASS/FAIL
+2. Grep: credential pattern → check each match → PASS/FAIL
+3. Grep: local path pattern → check each match → PASS/FAIL
+4. Grep: dangerous command pattern → check each match → PASS/FAIL
+5. Grep: YARA trigger word categories (Layer 4) → check each match → PASS/FAIL
 ```
 
-**Any FAIL = block publish.** Fix the issue, re-run scan. Only proceed when all four PASS.
+**Any FAIL = block publish.** Fix the issue, re-run scan. Only proceed when all five PASS.
+
+### Post-Publish Verification (v5.8 强化)
+
+**发布后必须验证 ClawHub 上的文件列表**，确认无凭证文件被上传：
+
+```bash
+clawhub inspect <slug>
+# 检查文件列表中不包含：
+# - config.local.json / .env.local / .env
+# - _*.py / _*.ps1 (临时脚本)
+# - *.log (日志文件)
+# - publish_*.ps1 / publish_*.sh (维护者脚本)
+```
 
 ---
 

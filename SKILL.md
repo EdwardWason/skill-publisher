@@ -3,7 +3,7 @@ name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布到三平台/发布技能更新/迭代技能发布 时触发。⚠️ 本技能会推送代码到外部平台（GitHub/ClawHub/SkillHub），操作对外可见且可能不可逆，执行前会向用户确认。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
 displayName: Skill Publisher
-version: 5.13.0
+version: 5.14.0
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。执行前向用户确认。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
@@ -165,6 +165,14 @@ allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash
     - SkillHub：`skillhub inspect <slug>` 或 frontmatter version 字段
     - 三平台版本号不一致时，醒目警告：`⚠️ 三平台版本不一致：GitHub <v1> | ClawHub <v2> | SkillHub <v3>，请检查遗漏的平台`
     - 一致时简短确认：`✅ 三平台版本一致：<version>`
+
+29. **中英文 README 一致性校验**（v5.14 新增，源自 wx-huitu v2.2.0 发布事件 — 英文版残留 3 项 v2.1.0 内容）：Step 1 仓库结构生成阶段，如果存在双语 README（含中英文两段），必须自动比对以下 5 项关键字段的中英文一致性，不一致 = WARN 并列出差异清单，提示作者修复后重新发布（不阻断，但必须在发布结果中醒目提示）：
+    - **版本号 badge**：中文 `版本-X.Y.Z` 与英文 `version-X.Y.Z` 必须一致
+    - **触发词列表**：中文触发词列表与英文版 Usage 段的触发词必须一一对应（数量相同、语义一致）
+    - **核心能力描述**：中文"核心特性"与英文"Key Features"每条必须语义对应，不能一边改了一边没改
+    - **用户警告段落**：中文"用户须知"与英文"User Notice"的副作用列表必须一致（默认操作数量相同、可选操作标注一致）
+    - **不适用范围**：中文"不适用范围"与英文"Out of Scope"必须一一对应
+    **校验方式**：提取中英文两段的对应章节，比对上述 5 项。发现不一致时输出：`⚠️ 中英文 README 不一致：[字段名] 中文=<值> | 英文=<值>，请同步修复`。**设计原则**：规则 2 已要求"安全修复必须同步中英文版"，本规则提供自动检测机制，避免人工遗漏
 
 ## 执行流程
 

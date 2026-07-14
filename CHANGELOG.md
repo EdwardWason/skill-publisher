@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.14.0] - 2026-07-14
+
+### Added — 规则29 中英文 README 一致性校验（源自 wx-huitu v2.2.0 发布事件）
+- **规则29 新增**：中英文 README 一致性校验——补充 v5.13 未覆盖的"单文件双语 README"场景（中英文在同一段 README.md 内，用 `---` 分隔）。v5.13 的 Step 2 只比对 README.md 和 README.en.md 两个独立文件，未覆盖单文件双语情况
+- **5 项关键字段比对**：版本号 badge / 触发词列表 / 核心能力描述 / 用户警告段落 / 不适用范围。不一致 = WARN（不阻断），在发布结果中醒目提示
+- **事件来源**：wx-huitu v2.2.0 发布时，英文版残留 3 项 v2.1.0 内容（version badge 仍是 2.1.0 / 过宽触发词"做个图""画图"未删除 / cloud sync 描述与 v2.2.0 gating 不一致），中文版已更新但英文版漏改。证明单文件双语 README 的人工同步不可靠，需要自动检测
+- **与规则2的协同**：规则2要求"安全修复必须同步中英文版"，规则29提供自动检测机制，避免人工遗漏
+
 ## [5.13.0] - 2026-07-14
 
 ### Added — 规则25 扩展到 12 项 + 触发词精度 + 中英文一致性（源自 session-branch + kami 审计反馈）

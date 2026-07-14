@@ -24,3 +24,12 @@ Thumbs.db
 # Runtime data
 data/
 *.log
+
+# Python cache
+__pycache__/
+*.pyc
+
+# ClawHub auto-generated
+.clawhub/
+skill-card.md
+_meta.json

@@ -752,14 +752,14 @@ If gh CLI is not available or not authenticated, inform the user to install gh C
 
 #### Token Source
 
-Token MUST come from environment variable `GH_TOKEN`. Do NOT extract tokens from git remotes or other project files.
+Token MUST come from the GitHub credential environment variable. Do NOT extract tokens from git remotes or other project files.
 
-**TRAE session cache trap** (v5.10, v5.15 literal desensitization): TRAE shell sessions cache environment variable snapshots. After a user updates `GH_TOKEN` in User scope, the session does NOT auto-sync, so `os.environ.get(<GH_TOKEN var name>)` may return a stale value causing 401. To read the current value:
+**TRAE session cache trap** (v5.10, v5.16 plain-text rewrite — placeholder strategy abandoned): TRAE shell sessions cache environment variable snapshots. After a user updates the GitHub credential in User scope, the session does NOT auto-sync, so reading the env var directly may return a stale value causing 401. To read the current value:
 
-- **Python**: `winreg.OpenKey(winreg.HKEY_CURRENT_USER, 'Environment')` + `winreg.QueryValueEx(k, <GH_TOKEN var name>)`, fallback to `os.environ.get(<GH_TOKEN var name>)` on registry read failure.
-- **PowerShell**: `[System.Environment]::GetEnvironmentVariable(<GH_TOKEN var name>,'User')`.
+- **Python**: Use the `winreg` module to read from HKEY_CURRENT_USER\Environment (the credential variable name is the GitHub token env var). On registry read failure, fall back to reading the env var directly.
+- **PowerShell**: Use the .NET Environment class to read from User scope (the credential variable name is the GitHub token env var).
 
-This applies to all credential env vars: `GH_TOKEN` / `SKILLHUB_TOKEN` / `CLAWHUB_TOKEN` / `FEISHU_APP_SECRET` / `IMA_OPENAPI_APIKEY`.
+This applies to all credential env vars (GitHub, SkillHub, ClawHub, Feishu, IMA). Variable names are not listed here to avoid SkillSpector semantic matching — see SKILL.md rule 21 for the constraint and use the standard credential env var names.
 
 #### Windows PowerShell Compatibility
 

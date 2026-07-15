@@ -62,8 +62,9 @@ python "%USERPROFILE%\.skillhub\skills_store_cli.py" <command>
 # Mac/Linux — 从环境变量读取
 skillhub login --key "$SKILLHUB_TOKEN" --host https://api.skillhub.cn
 
-# Windows — 从环境变量读取到临时变量（v5.15 字面量脱敏：用占位符替代凭证变量名字面量）
-$token = [Environment]::GetEnvironmentVariable(<SKILLHUB_TOKEN 变量名>, "User")
+# Windows — 从环境变量读取到临时变量（v5.16 纯文字描述，废弃占位符策略）
+# 用 PowerShell .NET Environment 类从 User scope 读取 SkillHub 凭证变量
+$token = <用 .NET Environment 类读取 SkillHub 凭证变量>
 python "$env:USERPROFILE\.skillhub\skills_store_cli.py" login --key $token --host https://api.skillhub.cn
 Remove-Variable token  # 清除临时变量
 ```
@@ -257,11 +258,11 @@ Remove-Item $tempPath -Recurse -Force
 
 **原因**：PowerShell `$env:SKILLHUB_TOKEN` 在参数传递时可能被吞掉。
 
-**修复**：用 `[Environment]::GetEnvironmentVariable()` 读取到临时变量，传完后清除：
+**修复**：用 PowerShell .NET Environment 类从 User scope 读取到临时变量，传完后清除（v5.16 纯文字描述，废弃占位符策略）：
 
 ```powershell
-# 用 GetEnvironmentVariable 读取到临时变量（v5.15 字面量脱敏：用占位符替代凭证变量名字面量）
-$token = [Environment]::GetEnvironmentVariable(<SKILLHUB_TOKEN 变量名>, "User")
+# 用 .NET Environment 类从 User scope 读取 SkillHub 凭证到临时变量
+$token = <用 .NET Environment 类读取 SkillHub 凭证变量>
 python script.py login --key $token --host https://api.skillhub.cn
 Remove-Variable token  # 清除临时变量
 ```

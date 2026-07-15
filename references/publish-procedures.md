@@ -233,8 +233,8 @@ clawhub inspect <slug>
 # Verify login
 clawhub whoami
 
-# Publish
-clawhub publish <path> \
+# Publish (v5.18: 迁移到 `clawhub skill publish` 新语法)
+clawhub skill publish <path> \
   --slug <slug> \
   --name "<Display Name>" \
   --version <version> \
@@ -335,13 +335,13 @@ If slug is taken:
 
 ### ClawHub "skill-card.md is auto-generated" (v5.0 新增)
 
-**Symptom**: `clawhub publish` fails with "skill-card.md is auto-generated, cannot publish"
+**Symptom**: `clawhub skill publish` fails with "skill-card.md is auto-generated, cannot publish"
 
 **Fix**: ⚠️ **删除前警告用户**（v5.17 新增，源自 SkillSpector Missing User Warnings finding 85%）：删除 `skill-card.md` 前必须告知用户"将删除本地 `skill-card.md`（ClawHub 自动生成文件，删除后不影响功能，发布时 ClawHub 会重新生成）"，并获得用户确认后再删除。ClawHub auto-generates this file, manual version is rejected.
 
 ### ClawHub "Version already exists" (v5.0 新增)
 
-**Symptom**: `clawhub publish --version 3.0.0` fails with "Version already exists"
+**Symptom**: `clawhub skill publish --version 3.0.0` fails with "Version already exists"
 
 **Fix**: Run `clawhub inspect <slug>` to check published versions. Increment PATCH version (3.0.0 → 3.0.1), update version in SKILL.md / plugin.json / CHANGELOG.md, re-publish.
 
@@ -412,7 +412,7 @@ git push
 ```bash
 # Update version in SKILL.md, plugin.json, CHANGELOG.md
 # Then re-publish
-clawhub publish <path> --slug <slug> --version <new-version> --changelog "<changes>"
+clawhub skill publish <path> --slug <slug> --version <new-version> --changelog "<changes>"
 ```
 
 **Note**: Old versions on ClawHub cannot be deleted. New version automatically becomes `latest`.

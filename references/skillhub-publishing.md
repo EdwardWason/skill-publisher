@@ -10,8 +10,8 @@
 | frontmatter | name + description | slug + displayName + version + summary + license |
 | 版本号 | --version 命令行参数 | frontmatter 内 version 字段 |
 | Token 环境变量 | CLAWHUB_TOKEN | SKILLHUB_TOKEN（login 时传入） |
-| 发布命令 | clawhub publish | skillhub publish |
-| 预检 | 无 | --dry-run |
+| 发布命令 | clawhub skill publish（v5.18 迁移新语法） | skillhub publish |
+| 预检 | --dry-run --json（v5.18 新增） | --dry-run |
 | Changelog | --changelog 参数 | --changelog 参数 |
 | slug 冲突检查 | clawhub inspect | 409 错误 |
 | 实名认证 | 无 | 需实名认证 |

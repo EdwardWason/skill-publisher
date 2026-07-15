@@ -1,0 +1,62 @@
+# .clawhubignore — ClawHub publish 时排除的文件模式
+# 详见 https://github.com/openclaw/clawhub/blob/main/docs/skill-format.md
+# ClawHub publish 不读 .gitignore，必须用 .clawhubignore 显式排除
+# 2026-07-12 凭证泄露事故根因：.gitignore 排除了 config.local.json 但 ClawHub 仍上传
+
+# === 凭证文件（最高优先级，绝对不能上传） ===
+.env
+.env.local
+.env.*.local
+config.local.json
+*.secret
+credentials.json
+credentials.local.json
+*.pem
+*.key
+
+# === 本地开发调试脚本（临时文件，不能上传） ===
+_*.py
+_*.ps1
+_*.js
+_*.sh
+scripts/_*
+
+# === 构建产物 / 缓存 ===
+__pycache__/
+*.pyc
+*.pyo
+node_modules/
+dist/
+build/
+
+# === 临时文件 / 备份 ===
+*.tmp
+*.bak
+*.swp
+*~
+outputs/
+output/
+temp/
+
+# === 日志文件 ===
+*.log
+logs/
+
+# === IDE / 编辑器 ===
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+
+# === 操作系统 ===
+.Trash-*
+
+# === 测试覆盖率报告 ===
+.coverage
+htmlcov/
+.pytest_cache/
+
+# === ClawHub 自动生成（如果本地存在，不上传） ===
+skill-card.md
+.clawhub/origin.json

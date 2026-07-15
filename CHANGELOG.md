@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.18.0] - 2026-07-16
+
+### Strategy Shift — 从"行为清理"转向"声明对齐"（源自 ClawHub 开源仓库深度分析）
+
+基于对 [ClawHub 开源仓库](https://github.com/openclaw/clawhub) 的深度分析（README.md / docs/skill-format.md / docs/cli.md / docs/publishing.md / SECURITY.md），识别出 v5.17.x 系列 6 次调试发布的根因不是"行为不够干净"，而是**"声明缺失导致 metadata mismatch"**。ClawHub 安全分析哲学是"声明与行为一致"——只要 frontmatter 准确声明了 `metadata.openclaw.requires.env`，代码从环境变量读取凭证就是合规行为，无需反复"移除行为"。
+
+### Added — 5 项核心升级
+
+- **frontmatter `metadata.openclaw` 结构补齐**（建议 A，P0 Critical）：SKILL.md frontmatter 新增 `metadata.openclaw` 嵌套结构，声明 `requires.env`（GITHUB_TOKEN/CLAWHUB_TOKEN/SKILLHUB_TOKEN）、`requires.bins`（git/python）、`anyBins`（clawhub/skillhub）、`primaryEnv`（GITHUB_TOKEN）、`envVars`（含可选变量 FEISHU_APP_ID/FEISHU_APP_SECRET/HTTPS_PROXY/HTTP_PROXY/NO_PROXY，标 `required: false`）、`emoji`、`homepage`。这是 ClawHub [skill-format.md](https://github.com/openclaw/clawhub/blob/main/docs/skill-format.md) 规范要求的核心声明层，根治 SkillSpector 的 metadata mismatch finding（无需再"移除行为"，而是"声明行为"）
+- **`.clawhubignore` 文件创建**（建议 G，P0 Critical）：新建 `.clawhubignore` 文件作为 ClawHub 发布专用排除层，覆盖凭证文件（.env/.env.local/config.local.json/*.secret/credentials.json/*.pem/*.key）、临时脚本（_*.py/_*.ps1/scripts/_*）、构建产物（__pycache__/node_modules/dist/）、临时文件（*.tmp/*.bak/outputs/）、日志（*.log/logs/）、IDE 文件（.vscode/.idea/.DS_Store/Thumbs.db）、ClawHub 自动生成文件（skill-card.md/.clawhub/origin.json）。ClawHub publish 不读 `.gitignore`，必须用 `.clawhubignore` 显式排除，根治 2026-07-12 凭证泄露事故类型
+- **security-audit.md 新增 Layer 4.5: Frontmatter 声明完整性检查**（建议 E，P2）：5 项检查项（metadata.openclaw 结构存在 / requires.env 覆盖代码中所有凭证环境变量 / primaryEnv 指向主凭证变量 / requires.bins 覆盖代码调用的 CLI / envVars 中可选变量标 required: false），含扫描方式（YAML 解析 + Grep 环境变量引用模式 + 差集比对）和参考示例
+- **SKILL.md 规则10 扩展**：补充 `.clawhubignore` 机制说明，引用 ClawHub 官方规范
+- **SKILL.md Step 5 升级**：从单行命令升级为 4 步流程（dry-run 预检 → 正式发布 → inspect --json 验证 Latest → 主动 scan --slug --update --output 下载报告）
+
+### Changed — 命令语法迁移
+
+- **`clawhub publish` → `clawhub skill publish` 新语法**（建议 F，P1 High）：全局迁移 13 处命令到 ClawHub 推荐的新语法（`clawhub skill publish <path>`），legacy `clawhub publish` 仍可用但建议迁移。涉及文件：SKILL.md Step 5、references/publishing-guide.md（3 处）、references/publish-procedures.md（3 处）、references/skillhub-publishing.md（1 处）、references/security-audit.md（2 处描述性文字）
+- **SKILL.md Step 5 流程升级**：新增 `--dry-run --json` 预检步骤 + `clawhub inspect <slug> --json` 程序化验证 Latest + `clawhub scan --slug <slug> --update --output scan-report.zip` 主动触发扫描并下载完整报告（含 skillspector.json），不再被动等待 PENDING 状态
+
+### Documentation — 知识沉淀
+
+- references/security-audit.md 中"`.gitignore` 盲区"段落更新为说明 `.clawhubignore` 作为根本修复
+- CHANGELOG 历史条目保持不变（v5.18 是声明层升级，不改变历史行为描述）
+
+### 教训沉淀
+
+**v5.17.x 系列 6 次调试发布的根因诊断**：v5.17.0 → v5.17.6 的 6 次发布都在"移除 OS 持久存储读取行为"上打转，触发 3 次自我指涉陷阱。根因是 frontmatter 完全缺失 `metadata.openclaw` 结构，导致 ClawHub 安全分析检测到"代码引用了凭证环境变量但 frontmatter 未声明"的 metadata mismatch。v5.18.0 从"行为清理"转向"声明对齐"——补齐 frontmatter 声明后，代码从环境变量读取凭证就是合规行为，无需移除任何行为。**这是"绕过 vs 遵守 vs 声明"思维的三阶段演变**：v5.14-v5.16 试图"绕过"检测（失败）→ v5.17 转向"遵守"（移除行为，但根因未解）→ v5.18 转向"声明"（补齐 frontmatter，根治）
+
 ## [5.17.6] - 2026-07-15
 
 ### Fixed — v5.17.5 残留字面量+行为问题（自我指涉陷阱复发 + SkillHub token 读取行为遗漏）

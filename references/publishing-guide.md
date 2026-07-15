@@ -501,7 +501,7 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 > **v5.0 新增模式**（2026-07，源自 IMA/飞书凭证泄露事件）：
 > `cli_`（飞书 app_id 前缀）、`IMA_OPENAPI`（IMA 凭证环境变量名）、`FEISHU_APP`（飞书凭证环境变量名）、`APP_SECRET`（飞书/通用 secret）、`CLIENTID`/`APIKEY`（IMA v1.1.7 凭证）、`client_id`/`client_secret`（OAuth 通用凭证）
 
-**PASS criteria**: Only conceptual mentions in security documentation (e.g., "requests credentials" in a security checklist). No actual token values, API keys, or secrets. 环境变量名出现在 `.gitignore` 或配置说明文档中（如 `$env:FEISHU_APP_ID = "your_app_id"`）算 PASS，但出现真实值（如 `cli_a976385...`）算 FAIL。
+**PASS criteria**: Only conceptual mentions in security documentation (e.g., "requests credentials" in a security checklist). No actual token values, API keys, or secrets. 环境变量名出现在 `.gitignore` 或配置说明文档中（如 `$env:FEISHU_APP_ID = "your_app_id"`）算 PASS，但出现真实值（如 `your_real_app_id_here`）算 FAIL.
 
 **Common leak patterns**:
 
@@ -509,10 +509,10 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 |---------|---------|-----|
 | Git remote with token | `https://user:ghp_xxx@github.com/...` | Use SSH or credential helper |
 | Hardcoded API key | `OPENAI_API_KEY = "sk-..."` | Move to `.env.local` |
-| Config with real values | `"app_id": "cli_a976385..."` | Replace with placeholder in published config |
+| Config with real values | `"app_id": "your_app_id_here"` | Replace with placeholder in published config |
 | Log files with tokens | `publish_run.log` containing `ghp_` | Add `*.log` to .gitignore |
-| **IMA 凭证硬编码**（v5.0） | `IMA_OPENAPI_CLIENTID = "CsiB_xxx"` | Replace with `"your_client_id_here"` |
-| **飞书凭证硬编码**（v5.0） | `FEISHU_APP_ID = "cli_a976..."` | Replace with `"your_app_id_here"` |
+| **IMA 凭证硬编码**（v5.0） | `IMA_OPENAPI_CLIENTID = "your_client_id_here"` | Replace with placeholder |
+| **飞书凭证硬编码**（v5.0） | `FEISHU_APP_ID = "your_app_id_here"` | Replace with placeholder |
 | **Python 脚本含 Token**（v5.0） | `TOKEN = "ghp_xxx"` in upload scripts | Delete script, use env var `GH_TOKEN` |
 
 #### Layer 2: Local Path Scan
@@ -902,8 +902,8 @@ clawhub inspect <slug>
 # Verify login
 clawhub whoami
 
-# Publish
-clawhub publish <path> \
+# Publish (v5.18: 迁移到 `clawhub skill publish` 新语法)
+clawhub skill publish <path> \
   --slug <slug> \
   --name "<Display Name>" \
   --version <version> \
@@ -1039,7 +1039,7 @@ Run `clawhub inspect <slug>` after publish to verify no `.pyc` files in distribu
 
 #### IMA/Feishu credentials leaked in reference docs (v5.0 新增)
 
-**Symptom**: Security scan finds `cli_a976...` or `IMA_OPENAPI_APIKEY = "CsiB_xxx"` in reference documents
+**Symptom**: Security scan finds `your_real_app_id_here` or `IMA_OPENAPI_APIKEY = "your_real_client_id_here"` in reference documents
 
 **Fix**: Replace all real credential values with placeholders:
 - `your_client_id_here` / `your_api_key_here` (IMA)
@@ -1069,7 +1069,7 @@ git push
 ```bash
 # Update version in SKILL.md, plugin.json, CHANGELOG.md
 # Then re-publish
-clawhub publish <path> --slug <slug> --version <new-version> --changelog "<changes>"
+clawhub skill publish <path> --slug <slug> --version <new-version> --changelog "<changes>"
 ```
 
 **Note**: Old versions on ClawHub cannot be deleted. New version automatically becomes `latest`.

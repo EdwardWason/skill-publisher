@@ -3,10 +3,51 @@ name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布到三平台/发布技能更新/迭代技能发布 时触发。⚠️ 本技能的行为范围（用户须知）：① 推送代码到外部平台（GitHub/ClawHub/SkillHub），操作对外可见且可能不可逆 ② 同步到本地 TRAE 安装目录（会覆盖已有版本） ③ 在本地 docs/knowledge/ 追加发布日志。执行前会向用户确认。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
 displayName: Skill Publisher
-version: 5.17.6
+version: 5.18.0
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。执行前向用户确认。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GITHUB_TOKEN
+        - CLAWHUB_TOKEN
+        - SKILLHUB_TOKEN
+      bins:
+        - git
+        - python
+      anyBins:
+        - clawhub
+        - skillhub
+    primaryEnv: GITHUB_TOKEN
+    envVars:
+      - name: GITHUB_TOKEN
+        required: true
+        description: GitHub PAT，用于推送仓库和创建 Release
+      - name: CLAWHUB_TOKEN
+        required: true
+        description: ClawHub 平台 API token（clh_ 开头），用于 skill publish / scan / inspect
+      - name: SKILLHUB_TOKEN
+        required: true
+        description: SkillHub 平台 API token（skh_ 开头），用于 skillhub publish
+      - name: FEISHU_APP_ID
+        required: false
+        description: 可选，飞书云空间备份使用
+      - name: FEISHU_APP_SECRET
+        required: false
+        description: 可选，飞书云空间备份使用
+      - name: HTTPS_PROXY
+        required: false
+        description: 可选，企业网络/受限网络环境下的 HTTPS 代理
+      - name: HTTP_PROXY
+        required: false
+        description: 可选，HTTP 代理
+      - name: NO_PROXY
+        required: false
+        description: 可选，代理排除列表
+    emoji: "🚀"
+    homepage: https://github.com/EdwardWason/skill-publisher
 ---
 
 # 技能发布
@@ -73,7 +114,7 @@ allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash
 7. --tags 只能用 ASCII 字符（中文会报错）
 8. 向 GitHub API 发送中文 JSON 必须用 Python（PowerShell 会损坏中文）
 9. **凭证扫描必须覆盖新模式**：除原模式外，还需扫描 `cli_|IMA_OPENAPI|FEISHU_APP|APP_SECRET|CLIENTID|APIKEY|client_id|client_secret`（2026-07 新增，源自 IMA/飞书凭证泄露事件）
-10. **ClawHub 自动生成文件必须排除**：`skill-card.md`、`.clawhub/` 目录由 ClawHub 自动生成，禁止发布（2026-07 新增，源自 skill-card.md 发布被拒事件）
+10. **ClawHub 自动生成文件必须排除**：`skill-card.md`、`.clawhub/` 目录由 ClawHub 自动生成，禁止发布（2026-07 新增，源自 skill-card.md 发布被拒事件）。**v5.18 新增 `.clawhubignore` 机制**：ClawHub publish 不读 `.gitignore`，必须用 `.clawhubignore` 显式排除凭证文件/临时脚本/构建产物（源自 [ClawHub docs/skill-format.md](https://github.com/openclaw/clawhub/blob/main/docs/skill-format.md) 规范，根治 2026-07-12 凭证泄露事故）
 11. **frontmatter description 决定 ClawHub Short summary**：更新 description 后必须重新发布才能同步 Short summary；首次发布后 description 不会自动更新，必须递增版本号重新发布（2026-07 新增，源自 Short summary 未更新事件）
 12. **.gitignore 必须排除 Python 缓存**：`__pycache__/`、`*.pyc`、`.clawhub/` 必须在 .gitignore 中（2026-07 新增，源自 __pycache__ 打包事件）
 13. **SkillHub frontmatter 必须包含 5 字段**：`slug`（全网唯一）、`displayName`、`version`、`summary`、`license`，与 ClawHub 的 name/description 共存于同一 frontmatter（2026-07 新增，支持 SkillHub 平台）
@@ -217,8 +258,28 @@ allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash
 ### Step 4.5: 删除临时脚本（v5.11 新增）
 GitHub 推送完成后、ClawHub 发布前，必须删除 Step 4 中可能产生的临时脚本（`_*.py`/`_*.ps1`）。这些脚本用于辅助 GitHub 推送（如 Git Data API 上传），但绝不能被 ClawHub 上传，否则会触发 MCP Tool Poisoning / Context-Inappropriate Capability 等 SkillSpector findings（web-to-fim v3.3.0 教训：_gh_push.py 误上传导致 27 个 findings）。用 LS 确认已删除。
 
-### Step 5: ClawHub 发布
-`clawhub publish <path> --slug <slug> --version <version> --tags "<ASCII-only>" --changelog "<text>"`
+### Step 5: ClawHub 发布（v5.18 增强 inspect --json 验证；scan/dry-run 待 CLI 未来版本支持）
+
+```bash
+# 1. 正式发布（v5.18 现实校准：CLI v0.9.0 实际只支持 `clawhub publish`，文档的 `clawhub skill publish` 是未来版本方向，当前不可用）
+clawhub publish <path> \
+  --slug <slug> \
+  --version <version> \
+  --tags "<ASCII-only>" \
+  --changelog "<text>"
+
+# 2. 验证 Latest 版本（v5.18 新增，CLI v0.9.0 支持 --json）
+clawhub inspect <slug> --json | python -c "import sys,json; d=json.load(sys.stdin); print('Latest:', d.get('latestVersion'))"
+
+# 3. 主动触发扫描（v5.18 待 CLI 未来版本支持 — 当前 CLI v0.9.0 不支持 `clawhub scan` 命令，只能被动等待 ClawHub 服务端自动扫描）
+# 未来 CLI 升级后可用：clawhub scan --slug <slug> --update --output scan-report.zip
+```
+
+**说明**：
+- `clawhub publish` 是 CLI v0.9.0 当前支持的命令（ClawHub docs/cli.md 描述的 `clawhub skill publish` 是未来版本方向，当前 CLI 未实现，2026-07-16 实测确认）
+- `clawhub inspect <slug> --json` 程序化验证 Latest 版本（CLI v0.9.0 支持）
+- `clawhub scan --slug --update --output` 主动扫描是未来 CLI 版本方向，当前不可用——只能被动等待 ClawHub 服务端扫描完成后查看 findings
+- `--dry-run` 参数当前 CLI 不支持（docs 描述但未实现）
 
 ### Step 6: SkillHub 发布（v5.1 新增，v5.3 加入 TRACE 预检）
 ```bash
@@ -262,7 +323,7 @@ python sync_skills.py <skill-name>
 # 或同步所有 skill（慎用，会覆盖所有安装目录）
 python sync_skills.py
 ```
-**注意**：sync_skills.py 位于项目根目录 `d:\TRAE SOLO CN\project\sync_skills.py`，会自动排除 `.git`/`.gitignore`/`_backup`/`__pycache__`/`.clawhub`/临时脚本（`_*.py`/`_*.ps1`）/运行时文件（`data`/`saved`/`logs`）/执行日志（`skill-publisher-log.md`）等。同步前可用 `--dry-run` 预览。
+**注意**：sync_skills.py 位于项目根目录 `<project-root>/sync_skills.py`，会自动排除 `.git`/`.gitignore`/`_backup`/`__pycache__`/`.clawhub`/临时脚本（`_*.py`/`_*.ps1`）/运行时文件（`data`/`saved`/`logs`）/执行日志（`skill-publisher-log.md`）等。同步前可用 `--dry-run` 预览。
 
 ### Step 9: 发布日志记录（v5.0 新增，v5.11 增强待补推跟踪，v5.16 简化经验采集）
 **A. 发布日志记录**：在 `docs/knowledge/skill-publisher-log.md` 中追加本次发布条目，格式：

@@ -26,12 +26,12 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 |---------|---------|-----|
 | Git remote with token | `https://user:ghp_xxx@github.com/...` | Use SSH or credential helper |
 | Hardcoded API key | `OPENAI_API_KEY = "sk-..."` | Move to `.env.local` |
-| Config with real values | `"app_id": "cli_a976385..."` | Replace with placeholder in published config |
+| Config with real values | `"app_id": "your_app_id_here"` | Replace with placeholder in published config |
 | Log files with tokens | `publish_run.log` containing `ghp_` | Add `*.log` to .gitignore |
-| **IMA 凭证硬编码**（v5.0） | `IMA_OPENAPI_CLIENTID = "CsiB_xxx"` | Replace with `"your_client_id_here"` |
-| **飞书凭证硬编码**（v5.0） | `FEISHU_APP_ID = "cli_a976..."` | Replace with `"your_app_id_here"` |
+| **IMA 凭证硬编码**（v5.0） | `IMA_OPENAPI_CLIENTID = "your_client_id_here"` | Replace with placeholder |
+| **飞书凭证硬编码**（v5.0） | `FEISHU_APP_ID = "your_app_id_here"` | Replace with placeholder |
 | **Python 脚本含 Token**（v5.0） | `TOKEN = "ghp_xxx"` in upload scripts | Delete script, use env var `GH_TOKEN` |
-| **SkillHub Token 硬编码**（v5.1） | `SKILLHUB_TOKEN = "skh_25d6..."` in scripts/docs | Replace with `"your_skillhub_token_here"` or use `$env:SKILLHUB_TOKEN` |
+| **SkillHub Token 硬编码**（v5.1） | `SKILLHUB_TOKEN = "skh_your_token_here"` in scripts/docs | Replace with `"your_skillhub_token_here"` or use `$env:SKILLHUB_TOKEN` |
 
 ### Layer 2: Local Path Scan
 
@@ -85,6 +85,55 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 - 代码中如果确实需要使用，确保不出现在发布的文件中（执行时用，不写进文档）
 
 > **关键教训**：YARA 规则是字面量匹配，不是语义分析。即使你在文档中写"不要使用 XXX 命令"，XXX 本身就会触发匹配。正确做法是用类别描述指代，不写字面量。
+
+### Layer 4.5: Frontmatter 声明完整性检查 (v5.18 新增，源自 ClawHub docs/skill-format.md 规范)
+
+> **背景**：ClawHub 安全分析核心机制是"声明与行为匹配"。如果代码引用了 `GITHUB_TOKEN` 但 frontmatter 未声明在 `metadata.openclaw.requires.env` / `primaryEnv` / `envVars` 中，会被标记为 metadata mismatch（Context-Inappropriate Capability 的根因之一）。v5.17.x 系列 6 次调试发布的根因正是 frontmatter 完全缺失 `metadata.openclaw` 结构。
+
+**检查项**（5 项，源自 [ClawHub skill-format.md](https://github.com/openclaw/clawhub/blob/main/docs/skill-format.md)）：
+
+| 检查项 | PASS 条件 | FAIL 处理 |
+|--------|----------|----------|
+| `metadata.openclaw` 结构存在 | frontmatter 含 `metadata.openclaw` 嵌套结构 | 补齐结构 |
+| `requires.env` 覆盖代码中所有凭证环境变量 | 扫描代码中所有环境变量读取模式（PowerShell/Python/Node 各自的 env 读取语法），提取变量名 X，必须在 `requires.env` 或 `envVars` 中声明 | 补齐声明或移除未声明的环境变量引用 |
+| `primaryEnv` 指向主凭证变量 | `primaryEnv` 值在 `requires.env` 列表中 | 设置 primaryEnv 为最核心的凭证环境变量 |
+| `requires.bins` / `anyBins` 覆盖代码调用的 CLI | 扫描 subprocess 调用的二进制名，在 `requires.bins` 或 `anyBins` 中声明 | 补齐声明 |
+| `envVars` 中可选变量标 `required: false` | `requires.env` 中不放可选变量，可选变量在 `envVars` 中标 `required: false` | 调整结构 |
+
+**扫描方式**：
+1. 解析 SKILL.md frontmatter（YAML 解析）
+2. Grep 扫描代码中所有环境变量引用模式：`\$env:[A-Z_]+` / `os\.environ\[['"]([A-Z_]+)['"]\]` / `process\.env\.([A-Z_]+)`
+3. 比对引用集合 vs 声明集合，差集 = 未声明的环境变量
+4. 同样扫描 subprocess 调用的二进制名
+
+**FAIL 条件**：任何代码引用的环境变量未在 frontmatter 声明 = FAIL（阻断发布）
+
+**设计原则**：ClawHub 安全分析哲学是"声明即透明"——只要 frontmatter 准确声明了 skill 需要的环境变量和二进制，代码从环境变量读取凭证就是合规行为。这是从 v5.17.x"移除行为"思维转向 v5.18"声明对齐"思维的根本性转变。
+
+**参考示例**（skill-publisher v5.18.0 frontmatter）：
+```yaml
+metadata:
+  openclaw:
+    requires:
+      env:
+        - GITHUB_TOKEN
+        - CLAWHUB_TOKEN
+        - SKILLHUB_TOKEN
+      bins:
+        - git
+        - python
+      anyBins:
+        - clawhub
+        - skillhub
+    primaryEnv: GITHUB_TOKEN
+    envVars:
+      - name: GITHUB_TOKEN
+        required: true
+        description: GitHub PAT
+      - name: FEISHU_APP_ID
+        required: false
+        description: 可选，飞书云空间备份
+```
 
 ### Layer 5: SSD3 + MCP + User Warnings Scan (v5.9 新增)
 
@@ -172,9 +221,9 @@ json.dump(rec_data, f)  # 持久化
 
 ### ⚠️ Critical: .gitignore Blind Spot (v5.8 新增)
 
-**Grep (ripgrep) 默认遵守 `.gitignore`，会跳过被忽略的文件。但 `clawhub publish` 上传整个目录，不看 `.gitignore`。** 这造成了一个致命盲区：`.gitignore` 中的凭证文件（如 `config.local.json`、`.env.local`）对 Grep 扫描"不可见"，但对 ClawHub 发布"完全可见"。
+**Grep (ripgrep) 默认遵守 `.gitignore`，会跳过被忽略的文件。但 `clawhub publish` 上传整个目录，不看 `.gitignore`（v5.18 起用 `.clawhubignore` 显式排除）。** 这造成了一个致命盲区：`.gitignore` 中的凭证文件（如 `config.local.json`、`.env.local`）对 Grep 扫描"不可见"，但对 ClawHub 发布"完全可见"。**v5.18 修复**：新增 `.clawhubignore` 文件作为 ClawHub 发布专用排除层，所有凭证文件/临时脚本/构建产物显式排除。
 
-**历史事故**（2026-07-12）：`references/config.local.json` 含真实飞书凭证，在 `.gitignore` 中（未进 GitHub），但被 `clawhub publish` 上传到 ClawHub 平台，导致凭证泄露。Grep 扫描报告 PASS，因为 ripgrep 跳过了该文件。
+**历史事故**（2026-07-12）：`references/config.local.json` 含真实飞书凭证，在 `.gitignore` 中（未进 GitHub），但被 `clawhub publish` 上传到 ClawHub 平台，导致凭证泄露。Grep 扫描报告 PASS，因为 ripgrep 跳过了该文件。**v5.18 根本修复**：`.clawhubignore` 文件排除所有凭证文件模式，ClawHub publish 会读取该文件并跳过匹配的文件。
 
 ### Pre-Scan: Mandatory File Listing (v5.8 新增)
 

@@ -233,7 +233,7 @@ clawhub inspect <slug>
 # Verify login
 clawhub whoami
 
-# Publish
+# Publish (v5.18 现实校准：CLI v0.9.0 实际只支持 `clawhub publish`，文档的 `clawhub skill publish` 是未来版本方向)
 clawhub publish <path> \
   --slug <slug> \
   --name "<Display Name>" \
@@ -341,7 +341,7 @@ If slug is taken:
 
 ### ClawHub "Version already exists" (v5.0 新增)
 
-**Symptom**: `clawhub publish --version 3.0.0` fails with "Version already exists"
+**Symptom**: `clawhub skill publish --version 3.0.0` fails with "Version already exists"
 
 **Fix**: Run `clawhub inspect <slug>` to check published versions. Increment PATCH version (3.0.0 → 3.0.1), update version in SKILL.md / plugin.json / CHANGELOG.md, re-publish.
 

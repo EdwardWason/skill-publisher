@@ -3,7 +3,7 @@ name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布到三平台/发布技能更新/迭代技能发布 时触发。⚠️ 本技能的行为范围（用户须知）：① 推送代码到外部平台（GitHub/ClawHub/SkillHub），操作对外可见且可能不可逆 ② 同步到本地 TRAE 安装目录（会覆盖已有版本） ③ 在本地 docs/knowledge/ 追加发布日志。执行前会向用户确认。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
 displayName: Skill Publisher
-version: 5.17.1
+version: 5.17.5
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。执行前向用户确认。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
@@ -196,8 +196,8 @@ allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash
 
 **读取 `references/publishing-guide.md` 获取完整发布流程。** 以下为摘要。
 
-### Step 0: 前置条件校验（v5.2 新增，v5.4 增强，v5.10 增强，v5.11 增加待补推检查）
-执行规则17的4项前置条件校验（目录存在/SKILL.md存在/平台登录态/Git配置）+ 规则18的Skill质量门禁 + 规则21的GitHub token有效性校验（v5.10: token 读取优先 User scope registry）。任何一项不满足 = 中止发布，明确告知用户缺什么、怎么修。全部通过才进入 Step 1。**v5.11 新增**：检查 `docs/knowledge/skill-publisher-log.md` 中是否有待补推版本（规则27），有则提示用户"检测到 <skill-name> v<version> 未推送到 GitHub，是否先补推？"。
+### Step 0: 前置条件校验（v5.2 新增，v5.4 增强，v5.10 增强，v5.11 增加待补推检查，v5.17 同步 registry 移除）
+执行规则17的4项前置条件校验（目录存在/SKILL.md存在/平台登录态/Git配置）+ 规则18的Skill质量门禁 + 规则21的GitHub token有效性校验（v5.17: token 只通过环境变量读取，不再从 OS 持久存储读取）。任何一项不满足 = 中止发布，明确告知用户缺什么、怎么修。全部通过才进入 Step 1。**v5.11 新增**：检查 `docs/knowledge/skill-publisher-log.md` 中是否有待补推版本（规则27），有则提示用户"检测到 <skill-name> v<version> 未推送到 GitHub，是否先补推？"。
 
 ### Step 1: 仓库结构生成
 生成标准目录：SKILL.md / README.md(中英双语) / CHANGELOG.md / LICENSE(MIT-0) / .gitignore / .claude-plugin/plugin.json。确认作者名、GitHub owner、版本号、ClawHub slug、SkillHub slug。SKILL.md frontmatter 必须同时包含 ClawHub 字段（name/description）和 SkillHub 字段（slug/displayName/version/summary/license）。

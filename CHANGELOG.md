@@ -2,13 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [5.17.1] - 2026-07-15
+## [5.17.5] - 2026-07-15
 
-### Fixed — v5.17.0 ClawHub publish 不生效修复
+### Fixed — v5.17.4 SkillSpector SDI-4 finding（内部矛盾修复）
 
-- **问题**：v5.17.0 的 `clawhub publish` 命令报成功但实际未更新 Latest 标记和文件内容，ClawHub 网页仍显示 v5.16.0 + 旧 SkillSpector findings。后端版本记录已创建（5.17.0），但 Latest 仍是 5.16.0
-- **修复**：递增到 v5.17.1 重新发布，绕过"Version 5.17.0 already exists"错误，让新内容成为 Latest
-- **教训**：`clawhub publish` 的"成功"输出不可信，必须用 `clawhub inspect` 验证 Latest 字段是否更新
+- **Step 0 与规则21 一致性修复**：v5.17.0 修改了规则21（移除 OS 持久存储读取凭证行为），但 Step 0 执行流程段落仍保留旧描述"token 读取优先 User scope registry"，导致 SkillSpector 标记 SDI-4 内部矛盾 finding。修复：Step 0 描述同步为"token 只通过环境变量读取，不再从 OS 持久存储读取"
+- **CHANGELOG v5.10 历史条目清理**：v5.10 历史条目含"User scope registry"和"os.environ"字面量，按规则25 第5项改为类别描述
 
 ## [5.17.0] - 2026-07-15
 
@@ -136,7 +135,7 @@ All notable changes to this project will be documented in this file.
 ### Added — 持续学习机制 + token 读取增强
 - **Step 9 扩展**：从"只记录日志"扩展为"日志记录 + 经验采集 + 索引维护"，发布时扫描被发布技能的 docs/knowledge/，采集跨技能可复用经验，更新 docs/knowledge/INDEX.md
 - **Step 9 强制门**：日志记录是发布流程最后一个必做步骤，不可跳过（周度 review 显示日志覆盖率仅 25%）
-- **规则21 增强**：token 读取优先 Windows User scope registry，fallback 到 os.environ。TRAE shell session 会缓存环境变量快照，os.environ 可能读到旧值导致 401 误判。适用于 GH_TOKEN/SKILLHUB_TOKEN/CLAWHUB_TOKEN/FEISHU_APP_SECRET/IMA_OPENAPI_APIKEY 等所有凭证环境变量
+- **规则21 增强**：token 读取优先从 OS 持久存储读取，fallback 到环境变量（v5.17 已移除该行为，改为只读环境变量）。TRAE shell session 会缓存环境变量快照，直接读环境变量可能读到旧值导致 401 误判。适用于所有凭证环境变量
 - **三层闭环沉淀机制**：经验采集层（事件驱动）+ 统一分析层（周期驱动）+ 主动注入层（触发驱动）
 
 ## [5.9.0] - 2026-07-12

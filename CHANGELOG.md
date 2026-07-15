@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.17.1] - 2026-07-15
+
+### Fixed — v5.17.0 ClawHub publish 不生效修复
+
+- **问题**：v5.17.0 的 `clawhub publish` 命令报成功但实际未更新 Latest 标记和文件内容，ClawHub 网页仍显示 v5.16.0 + 旧 SkillSpector findings。后端版本记录已创建（5.17.0），但 Latest 仍是 5.16.0
+- **修复**：递增到 v5.17.1 重新发布，绕过"Version 5.17.0 already exists"错误，让新内容成为 Latest
+- **教训**：`clawhub publish` 的"成功"输出不可信，必须用 `clawhub inspect` 验证 Latest 字段是否更新
+
 ## [5.17.0] - 2026-07-15
 
 ### Strategy Shift — "绕过"思维 → "遵守"思维（v5.14-v5.16 三轮失败后的根本性转变）

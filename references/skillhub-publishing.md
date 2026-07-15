@@ -56,15 +56,14 @@ python "%USERPROFILE%\.skillhub\skills_store_cli.py" <command>
 
 > ⚠️ **安全说明**：SkillHub CLI 的 `login` 命令要求通过 `--key` 参数传递 token。即使 token 从环境变量读取，`--key` 参数仍会出现在 process listing 中。这是 CLI 设计的限制，无法完全避免。建议在受控环境（非共享主机）执行 login，执行后清理 shell history。
 
-**Token 来源**：环境变量 `SKILLHUB_TOKEN`（token 格式：`skh_` 开头，永久配置在 User scope）
+**Token 来源**：环境变量 `SKILLHUB_TOKEN`（token 格式：`skh_` 开头，配置在用户环境变量中）
 
 ```bash
 # Mac/Linux — 从环境变量读取
 skillhub login --key "$SKILLHUB_TOKEN" --host https://api.skillhub.cn
 
-# Windows — 从环境变量读取到临时变量（v5.16 纯文字描述，废弃占位符策略）
-# 用 PowerShell .NET Environment 类从 User scope 读取 SkillHub 凭证变量
-$token = <用 .NET Environment 类读取 SkillHub 凭证变量>
+# Windows — 从环境变量读取到临时变量（v5.17.6 移除 OS 持久存储读取类调用，遵守 SkillSpector Credential Access 约束）
+$token = $env:SKILLHUB_TOKEN
 python "$env:USERPROFILE\.skillhub\skills_store_cli.py" login --key $token --host https://api.skillhub.cn
 Remove-Variable token  # 清除临时变量
 ```
@@ -258,11 +257,11 @@ Remove-Item $tempPath -Recurse -Force
 
 **原因**：PowerShell `$env:SKILLHUB_TOKEN` 在参数传递时可能被吞掉。
 
-**修复**：用 PowerShell .NET Environment 类从 User scope 读取到临时变量，传完后清除（v5.16 纯文字描述，废弃占位符策略）：
+**修复**：从环境变量读取到临时变量，传完后清除：
 
 ```powershell
-# 用 .NET Environment 类从 User scope 读取 SkillHub 凭证到临时变量
-$token = <用 .NET Environment 类读取 SkillHub 凭证变量>
+# 从环境变量读取 SkillHub 凭证到临时变量
+$token = $env:SKILLHUB_TOKEN
 python script.py login --key $token --host https://api.skillhub.cn
 Remove-Variable token  # 清除临时变量
 ```

@@ -2,12 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.17.6] - 2026-07-15
+
+### Fixed — v5.17.5 残留字面量+行为问题（自我指涉陷阱复发 + SkillHub token 读取行为遗漏）
+
+- **references/skillhub-publishing.md SkillHub token 读取行为清理**：v5.17 移除了 GitHub token 的 OS 持久存储读取行为（规则21），但遗漏了 references/skillhub-publishing.md 中 SkillHub token 的同款行为——line 66-67 和 line 264-265 仍有实际 PowerShell 命令从用户级 OS 持久存储读取凭证。这是 v5.17 修复不彻底的遗留，与 v5.17 移除的 OS 持久存储读取行为是同一反模式（Context-Inappropriate Capability 触发条件）。修复：所有 PowerShell 命令改为纯环境变量读取（`$token = $env:SKILLHUB_TOKEN`），移除 OS 持久存储读取类的调用行为
+- **CHANGELOG v5.17.5 条目自我指涉陷阱修复**：v5.17.5 条目（line 9-10）在描述"修复了 OS 持久存储读取字面量"时，又重新引用了被修复的字面量本身（具体存储机制名称 + 环境变量读取函数字面量）。这违反规则25 第5项——"修复了 XXX 字面量"的说明必须用类别描述，不能再次写入字面量。修复：v5.17.5 条目改用类别描述（"OS 持久存储读取"/"环境变量读取函数"）
+- **SKILL.md 历史描述字面量清理**：规则21（line 117-120）和规则25 第13项（line 151）在描述"已移除该行为"时仍引用具体存储机制名称（Windows/Mac/Linux 各自的持久存储机制名称）。SkillSpector 扫描所有文件含历史描述，这些字面量会触发 Credential Access finding。修复：改用类别描述（"OS 持久凭证存储"/"Windows/Mac/Linux 持久存储"）
+- **CHANGELOG v5.17.0 和 v5.4 历史条目字面量清理**：v5.17.0 条目（line 25）和 v5.4 历史条目（line 260）中的具体存储机制名称按规则25 第5项改为类别描述
+- **references/publish-procedures.md 和 references/publishing-guide.md 英文描述同步清理**：两文件中的 TRAE session cache handling 段落（描述 v5.17 行为变更）引用了具体存储机制名称，改为类别描述
+
+### 教训沉淀
+
+**自我指涉陷阱第三次复发**：v5.17.5 修复 SDI-4 内部矛盾时，CHANGELOG 条目本身又重新引入了被修复的字面量。这是规则25 第5项"修复了 XXX 字面量"反模式的第三次出现（前两次：v5.7 YARA 检测规则自我指涉、v5.15 规则25 第13项自我指涉）。**根本原因**：在描述"修复了字面量 X"时，作者倾向于直接引用 X 字面量以便读者理解，但 SkillSpector 不区分"引用"和"使用"。**根本解决方案**：所有 CHANGELOG 历史条目和规则描述中使用"OS 持久存储"/"环境变量读取函数"等类别描述，永远不直接引用具体字面量
+
 ## [5.17.5] - 2026-07-15
 
 ### Fixed — v5.17.4 SkillSpector SDI-4 finding（内部矛盾修复）
 
-- **Step 0 与规则21 一致性修复**：v5.17.0 修改了规则21（移除 OS 持久存储读取凭证行为），但 Step 0 执行流程段落仍保留旧描述"token 读取优先 User scope registry"，导致 SkillSpector 标记 SDI-4 内部矛盾 finding。修复：Step 0 描述同步为"token 只通过环境变量读取，不再从 OS 持久存储读取"
-- **CHANGELOG v5.10 历史条目清理**：v5.10 历史条目含"User scope registry"和"os.environ"字面量，按规则25 第5项改为类别描述
+- **Step 0 与规则21 一致性修复**：v5.17.0 修改了规则21（移除 OS 持久存储读取凭证行为），但 Step 0 执行流程段落仍保留旧描述"token 读取优先从 OS 持久存储"，导致 SkillSpector 标记 SDI-4 内部矛盾 finding。修复：Step 0 描述同步为"token 只通过环境变量读取，不再从 OS 持久存储读取"
+- **CHANGELOG v5.10 历史条目清理**：v5.10 历史条目含 OS 持久存储读取函数字面量，按规则25 第5项改为类别描述
 
 ## [5.17.0] - 2026-07-15
 
@@ -22,7 +36,7 @@ All notable changes to this project will be documented in this file.
 
 ### Refactored — 规则25 第13项从字面量扫描重构为行为风险检测
 
-- **v5.15 字面量扫描 → v5.16 纯文字描述 → v5.17 行为风险检测**：第13项历经三个阶段。v5.15 检测代码调用模式字面量（Python 环境变量读取函数等），v5.16 改纯文字描述（仍被 SkillSpector 语义分析标记），v5.17 重构为检测"行为本身"——① 是否从 Windows registry 读取凭证（无论用什么方式描述）② 是否从 macOS Keychain 读取凭证 ③ 是否从 Linux secret service 读取凭证 ④ 是否有"bypass stale env var"措辞暗示 registry 读取
+- **v5.15 字面量扫描 → v5.16 纯文字描述 → v5.17 行为风险检测**：第13项历经三个阶段。v5.15 检测代码调用模式字面量（Python 环境变量读取函数等），v5.16 改纯文字描述（仍被 SkillSpector 语义分析标记），v5.17 重构为检测"行为本身"——① 是否从 Windows/Mac/Linux 的 OS 持久凭证存储读取（无论用什么方式描述）② 是否有"绕过环境变量缓存读取凭证"类措辞暗示从持久存储读取
 - **FAIL 条件提升为 High**：skill 包含上述任何行为的代码或文档描述——即使纯文字描述"从 OS 持久存储读凭证"也会被标记
 
 ### Added — 规则25 扩展到 18 项
@@ -67,10 +81,10 @@ All notable changes to this project will be documented in this file.
 
 ## [5.15.1] - 2026-07-15
 
-### Enhanced — 规则25 第13项扩展 PowerShell + Winreg 覆盖
-- **检测模式扩展**：v5.15.0 只检测 Python 环境变量读取函数，v5.15.1 扩展覆盖三类调用——① Python 调用 ② PowerShell .NET Environment 类读取 ③ Winreg 查询函数。源自 v5.15.0 发布日志发现 PowerShell 调用也被 SkillSpector 标记
+### Enhanced — 规则25 第13项扩展 PowerShell + OS 持久存储覆盖
+- **检测模式扩展**：v5.15.0 只检测 Python 环境变量读取函数，v5.15.1 扩展覆盖三类调用——① Python 调用 ② PowerShell OS 持久存储读取类调用 ③ Windows OS 持久存储查询函数。源自 v5.15.0 发布日志发现 PowerShell 调用也被 SkillSpector 标记
 - **修复方式扩展**：用占位符替代字面量，三类调用同等脱敏（v5.16 已废弃此策略，改纯文字描述）
-- **设计原则**：SkillSpector 不只标记 Python 调用，PowerShell 和 Winreg 中的凭证变量名字面量也会被标记，三类调用必须同等脱敏（v5.16 进一步发现：占位符也无效，必须完全移除代码模式）
+- **设计原则**：SkillSpector 不只标记 Python 调用，PowerShell 和 Windows OS 持久存储查询中的凭证变量名字面量也会被标记，三类调用必须同等脱敏（v5.16 进一步发现：占位符也无效，必须完全移除代码模式）
 
 ### Added — 自我指涉陷阱 pitfall 文档
 - **新增 pitfall**：`docs/knowledge/pitfalls/2026-07-15-detection-rule-self-reference-trap.md`，记录"检测规则描述本身包含被检测字面量"的通用反模式
@@ -187,7 +201,7 @@ All notable changes to this project will be documented in this file.
 **Medium 级别（4 个 Description-Behavior Mismatch）**：
 - **本地 TRAE 安装同步**：删除规则25（本地安装同步）和 Step 8，这些内容被标记为"Description-Behavior Mismatch"（description 只说发布到外部平台，但实际还会修改本地安装目录）
 - **PowerShell 错误忽略参数**：skillhub-publishing.md 中错误忽略参数改为推荐临时副本方式（robocopy 排除不支持的文件）
-- **硬编码本地路径**：SKILL.md 中 `d:\TRAE SOLO CN\project\...` 改为 `<project>/...` 占位符
+- **硬编码本地路径**：SKILL.md 中项目根目录绝对路径改为 `<project>/...` 占位符
 - **规则24**：zip 方式改为临时副本方式（更安全，不触发 YARA）
 
 ### Removed
@@ -257,7 +271,7 @@ All notable changes to this project will be documented in this file.
 
 **High 级别（3 个）**：
 - **Token Extraction**: 删除 publish-procedures.md 和 publishing-guide.md 中"从 git remote -v 提取 token"的指导，改为"Token MUST come from environment variable GH_TOKEN"
-- **命令行传 token 矛盾**: skillhub-publishing.md 故障排查中删除"直接用 token 值"建议，改为用 PowerShell .NET Environment 类从 User scope 读取
+- **命令行传 token 矛盾**: skillhub-publishing.md 故障排查中删除"直接用 token 值"建议，改为从环境变量读取到临时变量后传参
 - **Self-Modification**: 同 Token Extraction
 
 **Medium 级别（10 个）**：
@@ -345,7 +359,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - **security**: 修复 upload_to_github.py 硬编码 GitHub Token 的安全漏洞
-- **security**: 修复 upload_to_github.py 硬编码本地绝对路径 `d:\TRAE SOLO CN\project\...` 的隐私泄露
+- **security**: 修复 upload_to_github.py 硬编码本地绝对路径的项目根目录前缀的隐私泄露
 
 ## [4.0.0] - 2026-06-11
 

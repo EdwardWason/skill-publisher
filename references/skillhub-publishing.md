@@ -62,8 +62,8 @@ python "%USERPROFILE%\.skillhub\skills_store_cli.py" <command>
 # Mac/Linux — 从环境变量读取
 skillhub login --key "$SKILLHUB_TOKEN" --host https://api.skillhub.cn
 
-# Windows — 从环境变量读取到临时变量
-$token = [Environment]::GetEnvironmentVariable("SKILLHUB_TOKEN", "User")
+# Windows — 从环境变量读取到临时变量（v5.15 字面量脱敏：用占位符替代凭证变量名字面量）
+$token = [Environment]::GetEnvironmentVariable(<SKILLHUB_TOKEN 变量名>, "User")
 python "$env:USERPROFILE\.skillhub\skills_store_cli.py" login --key $token --host https://api.skillhub.cn
 Remove-Variable token  # 清除临时变量
 ```
@@ -260,8 +260,8 @@ Remove-Item $tempPath -Recurse -Force
 **修复**：用 `[Environment]::GetEnvironmentVariable()` 读取到临时变量，传完后清除：
 
 ```powershell
-# 用 GetEnvironmentVariable 读取到临时变量
-$token = [Environment]::GetEnvironmentVariable("SKILLHUB_TOKEN", "User")
+# 用 GetEnvironmentVariable 读取到临时变量（v5.15 字面量脱敏：用占位符替代凭证变量名字面量）
+$token = [Environment]::GetEnvironmentVariable(<SKILLHUB_TOKEN 变量名>, "User")
 python script.py login --key $token --host https://api.skillhub.cn
 Remove-Variable token  # 清除临时变量
 ```

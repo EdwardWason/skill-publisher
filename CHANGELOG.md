@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.15.1] - 2026-07-15
+
+### Enhanced — 规则25 第13项扩展 PowerShell + Winreg 覆盖
+- **检测模式扩展**：v5.15.0 只检测 Python `os.environ.get` / `os.getenv`，v5.15.1 扩展覆盖三类调用——① Python 调用 ② PowerShell `[Environment]::GetEnvironmentVariable` / `[System.Environment]::GetEnvironmentVariable` ③ Winreg `winreg.QueryValueEx`。源自 v5.15.0 发布日志发现 PowerShell 调用也被 SkillSpector 标记
+- **修复方式扩展**：用占位符替代字面量，三类调用同等脱敏——`os.environ.get` + 占位符 / `[Environment]::GetEnvironmentVariable` + 占位符 / `winreg.QueryValueEx` + 占位符
+- **设计原则**：SkillSpector 不只标记 Python 调用，PowerShell 和 Winreg 中的凭证变量名字面量也会被标记，三类调用必须同等脱敏
+
+### Added — 自我指涉陷阱 pitfall 文档
+- **新增 pitfall**：`docs/knowledge/pitfalls/2026-07-15-detection-rule-self-reference-trap.md`，记录"检测规则描述本身包含被检测字面量"的通用反模式
+- **涵盖案例**：v5.15.0 规则25 第13项自我指涉 + v5.15.0 CHANGELOG 历史记录自我指涉 + v5.7.0 YARA 检测规则自我指涉
+- **通用规则**：任何基于字面量/模式匹配的检测规则，其规则描述本身不能包含被检测的字面量。适用于 YARA / Env Variable Harvesting / 凭证泄露扫描等所有字面量匹配类检测
+- **解决方案**：用类别描述、拼接描述或占位符 `<VAR>` 替代字面量
+
 ## [5.15.0] - 2026-07-15
 
 ### Fixed — Env Variable Harvesting 字面量脱敏（源自 skill-publisher v5.14.0 被 SkillSpector 标记 2 个 High finding）

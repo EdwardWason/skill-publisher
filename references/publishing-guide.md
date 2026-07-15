@@ -754,12 +754,9 @@ If gh CLI is not available or not authenticated, inform the user to install gh C
 
 Token MUST come from the GitHub credential environment variable. Do NOT extract tokens from git remotes or other project files.
 
-**TRAE session cache trap** (v5.10, v5.16 plain-text rewrite — placeholder strategy abandoned): TRAE shell sessions cache environment variable snapshots. After a user updates the GitHub credential in User scope, the session does NOT auto-sync, so reading the env var directly may return a stale value causing 401. To read the current value:
+**TRAE session cache handling** (v5.17 — registry reading removed, comply with SkillSpector Credential Access): TRAE shell sessions cache environment variable snapshots. After a user updates the GitHub credential in User scope, the session does NOT auto-sync, so reading the env var directly may return a stale value causing 401. **v5.17 behavioral change**: We no longer read the Windows registry to bypass this cache (that behavior was flagged by SkillSpector as Context-Inappropriate Capability — Credential Access from persistent OS storage exceeds least-privilege). Instead, on 401: inform the user to 1) confirm the credential is updated in User scope, 2) restart the TRAE session to refresh the env var cache, 3) retry the publish.
 
-- **Python**: Use the `winreg` module to read from HKEY_CURRENT_USER\Environment (the credential variable name is the GitHub token env var). On registry read failure, fall back to reading the env var directly.
-- **PowerShell**: Use the .NET Environment class to read from User scope (the credential variable name is the GitHub token env var).
-
-This applies to all credential env vars (GitHub, SkillHub, ClawHub, Feishu, IMA). Variable names are not listed here to avoid SkillSpector semantic matching — see SKILL.md rule 21 for the constraint and use the standard credential env var names.
+This applies to all credential env vars (GitHub, SkillHub, ClawHub, Feishu, IMA).
 
 #### Windows PowerShell Compatibility
 
@@ -1009,7 +1006,7 @@ If slug is taken:
 
 **Symptom**: `clawhub publish` fails with "skill-card.md is auto-generated, cannot publish"
 
-**Fix**: Delete `skill-card.md` from skill directory before publishing. ClawHub auto-generates this file, manual version is rejected.
+**Fix**: ⚠️ **删除前警告用户**（v5.17 新增，源自 SkillSpector Missing User Warnings finding 85%）：删除 `skill-card.md` 前必须告知用户"将删除本地 `skill-card.md`（ClawHub 自动生成文件，删除后不影响功能，发布时 ClawHub 会重新生成）"，并获得用户确认后再删除。ClawHub auto-generates this file, manual version is rejected.
 
 #### ClawHub "Version already exists" (v5.0 新增)
 

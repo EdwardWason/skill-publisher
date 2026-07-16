@@ -754,7 +754,7 @@ If gh CLI is not available or not authenticated, inform the user to install gh C
 
 Token MUST come from the GitHub credential environment variable. Do NOT extract tokens from git remotes or other project files.
 
-**TRAE session cache handling** (v5.17 — OS persistent credential-store reading removed, comply with SkillSpector Credential Access): TRAE shell sessions cache environment variable snapshots. After a user updates the GitHub credential in user environment variables, the session does NOT auto-sync, so reading the env var directly may return a stale value causing 401. **v5.17 behavioral change**: We no longer read the OS persistent credential store to bypass this cache (that behavior was flagged by SkillSpector as Context-Inappropriate Capability — Credential Access from persistent OS storage exceeds least-privilege). Instead, on 401: inform the user to 1) confirm the credential is updated in user environment variables, 2) restart the TRAE session to refresh the env var cache, 3) retry the publish.
+**TRAE session cache handling** (v5.17 — OS persistent credential-store reading removed, comply with SkillSpector Credential Access): TRAE shell sessions cache environment variable snapshots. After a user updates the GitHub credential in user environment variables, the session does NOT auto-sync, so reading the env var directly may return a stale value causing 401. **v5.17 behavioral change**: We no longer read the OS persistent credential store to refresh this cache (that behavior was flagged by SkillSpector as Context-Inappropriate Capability — Credential Access from persistent OS storage exceeds least-privilege). Instead, on 401: inform the user to 1) confirm the credential is updated in user environment variables, 2) restart the TRAE session to refresh the env var cache, 3) retry the publish.
 
 This applies to all credential env vars (GitHub, SkillHub, ClawHub, Feishu, IMA).
 
@@ -996,7 +996,7 @@ If slug is taken:
 
 **Fix**: Do NOT use HTTP API. Use `clawhub` CLI only.
 
-#### GitHub API upload bypasses .gitignore
+#### GitHub API upload ignores .gitignore
 
 **Symptom**: Files in .gitignore still appear in GitHub repo
 

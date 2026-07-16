@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.18.1] - 2026-07-16
+
+### Added — 跨平台通用规则预检层（源自 ClawHub 规则通用性分析）
+
+基于第二轮 ClawHub 开源仓库深度阅读（CONTRIBUTING.md / DEPRECATIONS.md / docs/plugin-validation-fixes.md）+ ClawHub 规则通用性分类框架（20% 平台特定 / 60% 概念通用 / 20% 工程最佳实践），将 80% 的 ClawHub 规则泛化为跨平台通用预检层：
+
+- **SKILL.md 新增规则 30「跨平台通用规则预检」**：5 项预检项（A. frontmatter `metadata.openclaw` 声明层 / B. description 行为声明段落 / C. README 用户警告段落 / D. 权限声明段落 / E. 发布专用排除层），适用于所有平台发布（GitHub / ClawHub / SkillHub）。包含三层分类框架和设计原则说明。核心认知：ClawHub 的 SkillSpector 看似是平台特有的安全分析，但其底层逻辑（声明与行为匹配、最小权限、用户知情、行为透明）是 agent skill 这个形态的通用安全属性——这些规则之所以在 ClawHub 出现，是因为 ClawHub 是目前唯一系统化做 skill 安全分析的平台，但规则本身不依赖于 ClawHub 的存在
+- **security-audit.md Layer 4.5 标注为跨平台通用预检层**：在 Layer 4.5 标题和背景段落增加"v5.18.1 跨平台通用性标注"，明确"本层检查不仅适用于 ClawHub 发布，也适用于 SkillHub 发布"，并说明 SkillHub 虽不强制要求 `metadata.openclaw`，但保留该结构不会报错（未知字段被忽略），且能提升 skill 在任何平台的可信度
+
+### Fixed — 预扫描发现并修复的凭证示例值残留（v5.18.0 清理不彻底）
+
+- **`ghp_xxx` → `ghp_your_token_here`**（6 处）：publishing-guide.md 和 security-audit.md 中的 Git remote URL 示例 / Python 脚本含 Token 示例 / Pattern 1 段落。`ghp_xxx` 虽然明显是占位符，但为了与 v5.18.0 的 `your_app_id_here` / `your_client_id_here` / `skh_your_token_here` 命名规范保持一致，统一改为 `ghp_your_token_here`
+- **`cli_a976...` → `cli_your_app_id_here...`**（2 处）：publish-procedures.md:385 故障排查段落和 security-audit.md:21 PASS criteria 段落。v5.18.0 漏改的两处，本次补齐
+- **`CsiB_xxx` → `your_client_id_here`**（1 处）：publish-procedures.md:385 故障排查段落。v5.18.0 漏改
+- **`skh_xxx` → `skh_your_token_here`**（3 处）：skillhub-publishing.md 环境变量配置段落的 Windows 永久设置 / `$env:SKILLHUB_TOKEN` / Mac/Linux export 三处。v5.18.0 漏改
+
+### Layer 4.5 Frontmatter 声明完整性自检
+
+- skill-publisher 自身 frontmatter 已声明 `requires.env`: GITHUB_TOKEN / CLAWHUB_TOKEN / SKILLHUB_TOKEN
+- references/ 中所有 `$env:XXX` 引用：SKILLHUB_TOKEN（已声明）/ FEISHU_APP_ID（已声明为可选）/ USERPROFILE（Windows 系统路径变量，非凭证，不需要声明）
+- 自检结果：PASS（无未声明的凭证环境变量）
+
+### Changed — 第二轮启发性审核发现沉淀
+
+- **第二轮审核 4 项新发现已记录**（不在本版本落地，作为 v5.19+ 方向）：
+  1. 文档版本追踪机制（ClawHub API v1 迁移期"文档超前于实现"现象的根因定位）
+  2. 预检规则脚本化（CONTRIBUTING.md 80% 覆盖率标准启发）
+  3. 可选环境变量 description 精确化（CONTRIBUTING.md 可选环境变量体系启发）
+  4. plugin.json schema 显式验证（plugin-validation-fixes.md 验证码体系启发）
+
+### Lesson Learned — ClawHub 规则通用性结论
+
+**用户假设验证成立**：ClawHub 平台的技能代码规则 60% 是概念通用的，对 SkillHub 上架有直接泛化价值；20% 是工程最佳实践，跨平台通用；仅 20% 是 ClawHub 平台特定的。这意味着"对 skill 这个事物具有通用性的优化和提升"这个判断成立——ClawHub 的规则不是平台自定义要求，而是 agent skill 形态的通用安全属性。本版本将 80% 的 ClawHub 规则泛化为跨平台通用预检层，未来发布到任何平台都会应用这些规则。
+
 ## [5.18.0] - 2026-07-16
 
 ### Strategy Shift — 从"行为清理"转向"声明对齐"（源自 ClawHub 开源仓库深度分析）

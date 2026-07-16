@@ -178,11 +178,11 @@ python "%USERPROFILE%\.skillhub\skills_store_cli.py" publish <path> --changelog 
 
 ```powershell
 # Windows 永久设置
-[Environment]::SetEnvironmentVariable("SKILLHUB_TOKEN", "skh_xxx", "User")
-$env:SKILLHUB_TOKEN = "skh_xxx"
+[Environment]::SetEnvironmentVariable("SKILLHUB_TOKEN", "skh_your_token_here", "User")
+$env:SKILLHUB_TOKEN = "skh_your_token_here"
 
 # Mac/Linux
-export SKILLHUB_TOKEN="skh_xxx"
+export SKILLHUB_TOKEN="skh_your_token_here"
 ```
 
 ## 故障排查

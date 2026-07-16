@@ -18,19 +18,19 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 > **v5.1 新增模式**（2026-07，支持 SkillHub 平台）：
 > `skh_`（SkillHub API Token 前缀，格式为 `skh_` + 64 位十六进制字符）
 
-**PASS criteria**: Only conceptual mentions in security documentation (e.g., "requests credentials" in a security checklist). No actual token values, API keys, or secrets. 环境变量名出现在 `.gitignore` 或配置说明文档中（如 `$env:FEISHU_APP_ID = "your_app_id"`）算 PASS，但出现真实值（如 `cli_a976385...`）算 FAIL。
+**PASS criteria**: Only conceptual mentions in security documentation (e.g., "requests credentials" in a security checklist). No actual token values, API keys, or secrets. 环境变量名出现在 `.gitignore` 或配置说明文档中（如 `$env:FEISHU_APP_ID = "your_app_id_here"`）算 PASS，但出现真实值（如 `cli_your_app_id_here...`）算 FAIL。
 
 **Common leak patterns**:
 
 | Pattern | Example | Fix |
 |---------|---------|-----|
-| Git remote with token | `https://user:ghp_xxx@github.com/...` | Use SSH or credential helper |
+| Git remote with token | `https://user:ghp_your_token_here@github.com/...` | Use SSH or credential helper |
 | Hardcoded API key | `OPENAI_API_KEY = "sk-..."` | Move to `.env.local` |
 | Config with real values | `"app_id": "your_app_id_here"` | Replace with placeholder in published config |
 | Log files with tokens | `publish_run.log` containing `ghp_` | Add `*.log` to .gitignore |
 | **IMA 凭证硬编码**（v5.0） | `IMA_OPENAPI_CLIENTID = "your_client_id_here"` | Replace with placeholder |
 | **飞书凭证硬编码**（v5.0） | `FEISHU_APP_ID = "your_app_id_here"` | Replace with placeholder |
-| **Python 脚本含 Token**（v5.0） | `TOKEN = "ghp_xxx"` in upload scripts | Delete script, use env var `GH_TOKEN` |
+| **Python 脚本含 Token**（v5.0） | `TOKEN = "ghp_your_token_here"` in upload scripts | Delete script, use env var `GH_TOKEN` |
 | **SkillHub Token 硬编码**（v5.1） | `SKILLHUB_TOKEN = "skh_your_token_here"` in scripts/docs | Replace with `"your_skillhub_token_here"` or use `$env:SKILLHUB_TOKEN` |
 
 ### Layer 2: Local Path Scan
@@ -86,9 +86,11 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 
 > **关键教训**：YARA 规则是字面量匹配，不是语义分析。即使你在文档中写"不要使用 XXX 命令"，XXX 本身就会触发匹配。正确做法是用类别描述指代，不写字面量。
 
-### Layer 4.5: Frontmatter 声明完整性检查 (v5.18 新增，源自 ClawHub docs/skill-format.md 规范)
+### Layer 4.5: Frontmatter 声明完整性检查 (v5.18 新增，源自 ClawHub docs/skill-format.md 规范；v5.18.1 标注为跨平台通用预检层)
 
 > **背景**：ClawHub 安全分析核心机制是"声明与行为匹配"。如果代码引用了 `GITHUB_TOKEN` 但 frontmatter 未声明在 `metadata.openclaw.requires.env` / `primaryEnv` / `envVars` 中，会被标记为 metadata mismatch（Context-Inappropriate Capability 的根因之一）。v5.17.x 系列 6 次调试发布的根因正是 frontmatter 完全缺失 `metadata.openclaw` 结构。
+
+> **v5.18.1 跨平台通用性标注**：本层检查不仅适用于 ClawHub 发布，也适用于 SkillHub 发布。底层逻辑——"代码引用的环境变量/二进制必须在 frontmatter 声明"——是 agent skill 这个形态的通用安全属性，与平台无关。SkillHub 虽然没有 `metadata.openclaw` 命名空间强制要求，但保留该结构不会报错（未知字段被忽略），且能提升 skill 在任何平台的可信度。**适用范围**：所有平台发布前的强制预检层。详见 SKILL.md 规则 30「跨平台通用规则预检」。
 
 **检查项**（5 项，源自 [ClawHub skill-format.md](https://github.com/openclaw/clawhub/blob/main/docs/skill-format.md)）：
 
@@ -336,7 +338,7 @@ Test-Path .clawhub
 
 ```
 # LEAKED
-https://EdwardWason:ghp_xxx@github.com/EdwardWason/repo.git
+https://EdwardWason:ghp_your_token_here@github.com/EdwardWason/repo.git
 
 # FIX: Use credential helper or SSH
 git remote set-url origin git@github.com:EdwardWason/repo.git

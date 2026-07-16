@@ -3,7 +3,7 @@ name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布到三平台/发布技能更新/迭代技能发布 时触发。⚠️ 本技能的行为范围（用户须知）：① 推送代码到外部平台（GitHub/ClawHub/SkillHub），操作对外可见且可能不可逆 ② 同步到本地 TRAE 安装目录（会覆盖已有版本） ③ 在本地 docs/knowledge/ 追加发布日志。执行前会向用户确认。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
 displayName: Skill Publisher
-version: 5.18.0
+version: 5.18.1
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。执行前向用户确认。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
@@ -232,6 +232,20 @@ metadata:
     - **权限声明**：SKILL.md 的权限声明段落与 README 的"用户须知"必须一致
 
     **校验方式**：提取各类文件的对应章节，比对上述字段。发现不一致时输出：`⚠️ 多文件不一致：[文件A] vs [文件B] [字段名] A=<值> | B=<值>，请同步修复`。**设计原则**：规则 2 已要求"安全修复必须同步中英文版"，本规则扩展为"任何修改必须同步所有相关文件"——SkillSpector 会扫描所有文件，一处遗漏就会触发 finding
+
+30. **跨平台通用规则预检**（v5.18.1 新增，源自第二轮 ClawHub 开源仓库深度分析 + ClawHub 规则通用性分类框架）：发布到任何平台（GitHub / ClawHub / SkillHub）前，必须执行以下 5 项跨平台通用规则预检。这些规则源自 [ClawHub 开源仓库](https://github.com/openclaw/clawhub) 的安全分析哲学，但其底层逻辑是 agent skill 这个形态的通用安全属性——与平台无关，对所有 skill 发布都适用：
+    - **A. frontmatter `metadata.openclaw` 声明层**（通用化自 Layer 4.5）：所有平台发布前，frontmatter 必须包含 `metadata.openclaw` 结构，声明 `requires.env`（代码引用的所有凭证环境变量）/ `requires.bins`（必须存在的二进制）/ `anyBins`（任一存在即可的二进制）/ `primaryEnv`（主凭证变量）/ `envVars`（含 `required: false` 标记的可选变量）。SkillHub 虽不强制要求 `metadata.openclaw`，但保留该结构不会报错（未知字段被忽略），且能提升 skill 在任何平台的可信度。**适用范围**：所有平台
+    - **B. description 行为声明段落**（通用化自 MCP Tool Poisoning 完整行为声明）：description 必须完整声明 skill 的全部行为范围，不能只描述核心功能。如果 skill 实际行为包含以下任一项，description 必须明确披露：① 读取本地文件（memory/profile/config）② 网络请求（API 调用）③ subprocess 调用（CLI 工具）④ 写入外部服务（推送/上传）。建议在 description 中加"本技能的行为范围（用户须知）"段落。**适用范围**：所有平台
+    - **C. README 用户警告段落**（通用化自 Missing User Warnings）：如果 skill 有副作用（自动推送/自动写入外部服务/定时执行/写入项目本地文件），README 必须包含用户警告，明确告知：① 运行会自动写入哪些外部目的地 ② 会读取哪些本地数据 ③ 会创建/覆盖项目内哪些文件 ④ 如何禁用副作用。中英文 README 必须同步包含警告。**适用范围**：所有平台
+    - **D. 权限声明段落**（通用化自 MCP Least Privilege）：SKILL.md 或 plugin.json 必须声明 skill 需要的权限（网络访问/文件读写/环境变量列表/subprocess 调用/外部 API）。建议在 SKILL.md 中增加 5 行权限声明表格（能力类别 / 是否使用 / 说明）。**适用范围**：所有平台
+    - **E. 发布专用排除层**（通用化自 `.clawhubignore` 机制）：发布到任何平台前，必须确认凭证文件/临时脚本/构建产物不会被上传。ClawHub 用 `.clawhubignore`；SkillHub CLI 如果也读 `.gitignore` 就有同样的盲区，需用临时副本方式发布（在副本中删除凭证文件和不支持文件）。**适用范围**：所有平台
+
+    **三层分类框架**（源自 ClawHub 规则通用性分析）：
+    - **平台特定**（20%）：`.clawhubignore` 文件名 / `metadata.openclaw` 命名空间 / `clawhub` CLI 命令名——仅 ClawHub 需要
+    - **概念通用**（60%）：frontmatter 声明与行为匹配 / Description-Behavior Mismatch / Credential Access 检测 / Missing User Warnings / 行为声明段落——对所有平台有直接泛化价值
+    - **工程最佳实践**（20%）：semver / 安全预扫描 / Post-publish 验证 / 双 README 同步——跨平台通用
+
+    **设计原则**：ClawHub 的 SkillSpector 看似是平台特有的安全分析，但其底层逻辑（声明与行为匹配、最小权限、用户知情、行为透明）是 agent skill 这个形态的通用安全属性。这些规则之所以在 ClawHub 出现，是因为 ClawHub 是目前唯一系统化做 skill 安全分析的平台，但规则本身不依赖于 ClawHub 的存在。**本规则将概念通用层（60%）+ 工程最佳实践层（20%）= 80% 的 ClawHub 规则泛化为跨平台通用预检**
 
 ## 执行流程
 

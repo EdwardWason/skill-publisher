@@ -507,13 +507,13 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 
 | Pattern | Example | Fix |
 |---------|---------|-----|
-| Git remote with token | `https://user:ghp_xxx@github.com/...` | Use SSH or credential helper |
+| Git remote with token | `https://user:ghp_your_token_here@github.com/...` | Use SSH or credential helper |
 | Hardcoded API key | `OPENAI_API_KEY = "sk-..."` | Move to `.env.local` |
 | Config with real values | `"app_id": "your_app_id_here"` | Replace with placeholder in published config |
 | Log files with tokens | `publish_run.log` containing `ghp_` | Add `*.log` to .gitignore |
 | **IMA 凭证硬编码**（v5.0） | `IMA_OPENAPI_CLIENTID = "your_client_id_here"` | Replace with placeholder |
 | **飞书凭证硬编码**（v5.0） | `FEISHU_APP_ID = "your_app_id_here"` | Replace with placeholder |
-| **Python 脚本含 Token**（v5.0） | `TOKEN = "ghp_xxx"` in upload scripts | Delete script, use env var `GH_TOKEN` |
+| **Python 脚本含 Token**（v5.0） | `TOKEN = "ghp_your_token_here"` in upload scripts | Delete script, use env var `GH_TOKEN` |
 
 #### Layer 2: Local Path Scan
 
@@ -616,7 +616,7 @@ Test-Path .clawhub
 
 ```
 # LEAKED
-https://EdwardWason:ghp_xxx@github.com/EdwardWason/repo.git
+https://EdwardWason:ghp_your_token_here@github.com/EdwardWason/repo.git
 
 # FIX: Use credential helper or SSH
 git remote set-url origin git@github.com:EdwardWason/repo.git

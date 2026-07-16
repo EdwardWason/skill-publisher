@@ -382,7 +382,7 @@ Run `clawhub inspect <slug>` after publish to verify no `.pyc` files in distribu
 
 ### IMA/Feishu credentials leaked in reference docs (v5.0 新增)
 
-**Symptom**: Security scan finds `cli_a976...` or `IMA_OPENAPI_APIKEY = "CsiB_xxx"` in reference documents
+**Symptom**: Security scan finds `cli_your_app_id_here...` or `IMA_OPENAPI_APIKEY = "your_client_id_here"` in reference documents
 
 **Fix**: Replace all real credential values with placeholders:
 - `your_client_id_here` / `your_api_key_here` (IMA)

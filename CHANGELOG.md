@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.19.1] - 2026-07-17
+
+### Fixed
+
+- **ClawHub publish "Version already exists" 状态不一致修复**：ClawHub 服务端对 5.19.0 报 "Version already exists" 但 inspect 查不到该版本且 Latest 仍指向 5.18.2（versions 列表为空），属于 ClawHub 平台缓存/状态不一致。递增 patch 到 5.19.1 绕过
+
+### Changed
+
+- 版本号 5.19.0 → 5.19.1（内容不变，仅版本号递增以绕过 ClawHub 状态不一致）
+
 ## [5.19.0] - 2026-07-17
 
 ### Added — 集成 skill-auditor v2.0.0 声明-行为一致性预检

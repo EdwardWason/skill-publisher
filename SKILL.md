@@ -3,7 +3,7 @@ name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布到三平台/发布技能更新/迭代技能发布 时触发。⚠️ 本技能的行为范围（用户须知）：① 推送代码到外部平台（GitHub/ClawHub/SkillHub），操作对外可见且可能不可逆 ② 同步到本地 TRAE 安装目录（会覆盖已有版本） ③ 在本地 docs/knowledge/ 追加发布日志。执行前会向用户确认。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
 displayName: Skill Publisher
-version: 5.18.2
+version: 5.19.0
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。执行前向用户确认。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
@@ -171,7 +171,7 @@ metadata:
 24. **SkillHub 文件锁定 fallback**（v5.4 新增）：Windows 上文件可能被其他进程占用导致无法移除，此时改用临时副本方式发布：
     - 移除文件失败（Access denied / being used by another process）→ 用 robocopy 复制到临时目录，在副本中删除不支持的文件，发布副本，发布后删除副本
     - 临时副本目录必须在 skill 目录外，避免被扫描
-25. **ClawHub SkillSpector 预扫描**（v5.7 新增，v5.9/v5.12/v5.13/v5.15/v5.16/v5.17 扩展，源自 v5.4-v5.6 + skillhub-daily + gongwen-formatter + session-branch + kami + xhs-crafter + article-tuwen 多轮 finding 修复经验 + SkillSpector 审计逻辑分析）：发布到 ClawHub 前，必须对 skill 目录执行以下 18 项预扫描（v5.9: 9 项 → v5.12: 10 项 → v5.13: 12 项 → v5.15: 13 项 → v5.16: 17 项 → v5.17: 18 项），任何一项 FAIL = 中止发布并修复（WARN/Medium 级别不阻断）。**v5.17 核心认知转变**：基于 SkillSpector 审计逻辑分析，检测核心是"行为本身是否有风险"，不是"描述方式是否匹配"。SkillSpector 会扫描所有发布文件（含 CHANGELOG 历史记录），不限于 SKILL.md：
+25. **ClawHub SkillSpector 预扫描**（v5.7 新增，v5.9/v5.12/v5.13/v5.15/v5.16/v5.17 扩展，源自 v5.4-v5.6 + skillhub-daily + gongwen-formatter + session-branch + kami + xhs-crafter + article-tuwen 多轮 finding 修复经验 + SkillSpector 审计逻辑分析）：发布到 ClawHub 前，必须对 skill 目录执行以下 21 项预扫描（v5.9: 9 项 → v5.12: 10 项 → v5.13: 12 项 → v5.15: 13 项 → v5.16: 17 项 → v5.17: 18 项 → v5.19: 21 项），任何一项 FAIL = 中止发布并修复（WARN/Medium 级别不阻断）。**v5.17 核心认知转变**：基于 SkillSpector 审计逻辑分析，检测核心是"行为本身是否有风险"，不是"描述方式是否匹配"。SkillSpector 会扫描所有发布文件（含 CHANGELOG 历史记录），不限于 SKILL.md：
     - **YARA 触发词扫描**：扫描 shell history 清理命令、PowerShell 错误忽略参数、递归强制删除、权限放宽等"自治破坏行为"字面量。这些字符串即使在文档说明中出现也会触发 YARA 规则 `agent_skill_destructive_autonomous_actions`。详见 `references/security-audit.md` Layer 4
     - **Description-Behavior Mismatch**（v5.13 增强，v5.16 增加 What 不 How 原则）：frontmatter description 必须与 skill 实际行为一致。如果 description 只说"发布到外部平台"，就不能有"修改本地安装目录"的规则；如果有本地修改行为，description 必须明确披露。**description 模板建议（v5.13 新增，源自 kami 审计反馈）**：description 应区分"核心能力"（primary capability，必做的）和"可选能力"（optional capability，有条件触发的）。模板：`<核心能力描述>。可选能力：<可选能力 1>、<可选能力 2>（有条件触发）`。例如：`技能发布 — 将 Skill 推送到三平台。可选能力：本地安装目录同步（仅本地使用）、待补推版本跟踪（GitHub 失败时触发）`。**What 不 How 原则（v5.16 新增，源自 article-tuwen 3 轮审计 — 编排层实现细节文档化触发 8 项 findings）**：description 和 SKILL.md 只描述"做什么"（What），不描述"怎么做"（How）的子技能实现细节。**禁止文档化的实现细节**：① 子技能的端口号/进程操作/脚本文件名 ② 子技能的内部 API 调用链 ③ 子技能的临时文件路径。**编排层特化规则**：如果 skill 是编排层（调用其他 skill 完成任务），只描述编排逻辑（调用哪些 skill、什么顺序、如何组合），不描述子技能的实现。**典型反例**：article-tuwen v1.0.0 在 SKILL.md 中描述了图片搜索子技能的"启动本地服务器监听 8000 端口"实现细节，被 SkillSpector 标记为 Context-Inappropriate Capability。**设计原则**：当技能实际能力超出 description 描述时，SkillSpector 会标为 Description-Behavior Mismatch；区分核心/可选能力可以让 description 更准确，同时不显得过于冗长
     - **安全敏感方案不文档化**：不要在文档中描述应对网络限制的 API 逐文件上传方案（含 blob/tree/commit/refs 链）、base64 编码上传等方案。SkillSpector 会标记为 MCP Tool Poisoning / Tool Parameter Abuse。实际执行时可使用，但不要写进文档
@@ -195,6 +195,9 @@ metadata:
     - **过渡修补检测**（v5.16 新增，源自 xhs-crafter v7.4.0 教训 — 为修复 1 项 finding 引入 image-search.js 导致 5 项新 findings，WARN 级别不阻断）：扫描本次修改是否新增了"过渡修补"代码——为应对某个 finding 而引入的新外部依赖或新行为。**检测模式**：① 扫描代码文件，如果包含外部 API 调用/环境变量读取/跨项目状态访问 ② 检查这些代码是否是"为修复某个 SkillSpector finding 而新增的" ③ 如果是 = WARN，提示作者评估"这个修复是否引入了新的 finding 风险"。**WARN 级别**：不阻断发布，只提示作者评估。**典型反例**：xhs-crafter v7.4.0 为修复"图片搜索功能缺失"而新增 image-search.js，引入了本地服务器监听/外部 API 调用/进程管理 3 项新行为，导致 5 项新 findings。**修复方式**：修复 finding 时评估"这个修复是否引入了新的外部依赖或行为"——如果是，在 SKILL.md description 和权限声明中同步声明。**设计原则**：过渡修补是第二轮 findings 的最大来源——为修复 1 项 finding 而引入 5 项新 findings 的反模式必须预防
     - **Instruction Override 语言检测**（v5.16 新增，源自 article-tuwen v1.0.3 审计 — 安全检查规避类词汇出现在确认点附近被标记为 Instruction Override High finding）：扫描 SKILL.md 中是否包含安全检查规避类词汇出现在**安全检查/确认点**附近。**检测方式**：扫描一类意为"规避安全检查"的词汇（含中文和英文等价词），出现在"确认点"/"安全检查"/"前置条件"/"用户确认"等**安全语境**附近时为 FAIL（High 级别）。**Medium 条件**：上述词汇出现在"异常处理"/"错误恢复"/"降级"等**容错语境**附近时。**不触发条件**：上述词汇出现在普通说明中（如"跳过此步骤不影响主流程"）不算 FAIL。**判定标准**：词汇暗示"规避安全检查" = FAIL；词汇描述"异常时降级" = Medium；词汇只是普通说明 = 不触发。**修复方式**：用"异常时降级到 X"/"失败后 fallback 到 Y"替代"规避 X"——明确是"降级"而非"规避"。**设计原则**：SkillSpector 将规避类语言视为 Instruction Override——agent 不应有规避安全检查的指令，即使是为了容错也应该用"降级"而非"规避"
     - **Hidden Instructions 检测**（v5.17 新增，源自 skill-publisher v5.15.1 自身被 SkillSpector 标记为 Hidden Instructions High 95% — HTML 注释形式标记的 LOCAL-ONLY 隐藏指令）：扫描所有文件中是否包含 HTML 注释标记的隐藏指令或条件指令。**检测模式**：① HTML 注释中包含"发布前删除"/"发布前移除"/"LOCAL-ONLY"/"内部使用"等条件指令 ② "发布前 X，发布后 Y"的双态指令（指令与实际行为矛盾）③ 任何形式的"隐藏直到某条件触发"的指令。**FAIL 条件**（High 级别）：发现上述任何模式。**修复方式**：移除 HTML 注释标记的隐藏指令，所有行为在 description 中声明——"声明即透明"原则。如果某些步骤只在本地执行（如 sync_skills.py），不用 HTML 注释标记"发布前删除"，而是在 description 中明确声明"会同步到本地安装目录"。**设计原则**：SkillSpector 将 HTML 注释中的指令视为 Hidden Instructions——agent 可能在用户不知情的情况下执行隐藏指令。正确做法是所有行为都透明声明，不用隐藏指令管理发布流程
+    - **Name-Summary Coherence（P-C1，v5.19 新增）**：检查 frontmatter `name` 与 `description`/`summary` 是否描述同一件事。**检测方式**：提取 name 关键词（如 publisher/creator/auditor）与 description 关键词，重叠度 < 30% = WARN。**FAIL 条件**：WARN 级别不阻断发布，提示作者检查命名一致性。**修复方式**：调整 name 或 description 使二者指向同一概念。**来源**：skill-auditor v2.0.0 P-C1
+    - **Unsafe Deserialization 检测（T-AST05，v5.19 新增）**：扫描代码是否使用不安全的反序列化方式。**检测模式**：Grep `yaml.load(`（非 `safe_load`）/ `pickle.loads?(` / `eval(` 用于解析 JSON/YAML。**FAIL 条件**（High）：上述模式出现 = 阻断发布。**修复方式**：① `yaml.load` → `yaml.safe_load` ② `pickle.loads` → `json.loads`（如数据是 JSON）③ `eval` 解析 → `json.loads`。**来源**：skill-auditor v2.0.0 T-AST05（OWASP AST10 对齐）
+    - **Cross-Platform OS 限制声明（T-AST10，v5.19 新增）**：检查 frontmatter 是否声明 OS 限制或跨平台兼容性。**检测方式**：检查 `metadata.openclaw.os` 字段是否存在，或 description 是否含 "Windows/Linux/Mac/cross-platform" 等平台关键词。**FAIL 条件**：无 OS 声明 = Low（FYI 级，不阻断，提示作者补充）。**修复方式**：在 metadata.openclaw.os 声明支持的 OS 列表（如 `["windows", "macos", "linux"]`）。**来源**：skill-auditor v2.0.0 T-AST10
 26. **GitHub 失败醒目警告**（v5.11 新增，源自 skillhub-daily GitHub 漏更 40 天事件）：如果 GitHub 推送失败（token 失效/网络超时/降级全失败），发布流程末尾必须用醒目警告重复提示，不能只埋在结果表格里。警告格式：
     ```
     ⚠️⚠️⚠️ 警告：GitHub 未同步！版本 <version> 未推送到 GitHub ⚠️⚠️⚠️
@@ -246,6 +249,14 @@ metadata:
     - **工程最佳实践**（20%）：semver / 安全预扫描 / Post-publish 验证 / 双 README 同步——跨平台通用
 
     **设计原则**：ClawHub 的 SkillSpector 看似是平台特有的安全分析，但其底层逻辑（声明与行为匹配、最小权限、用户知情、行为透明）是 agent skill 这个形态的通用安全属性。这些规则之所以在 ClawHub 出现，是因为 ClawHub 是目前唯一系统化做 skill 安全分析的平台，但规则本身不依赖于 ClawHub 的存在。**本规则将概念通用层（60%）+ 工程最佳实践层（20%）= 80% 的 ClawHub 规则泛化为跨平台通用预检**
+
+31. **审计期补充检查引导**（v5.19 新增，源自 skill-auditor v2.0.0 集成）：发布预扫描覆盖声明-行为一致性的静态可判定部分。以下检查项需审计期运行时上下文或语义判断，发布预扫描不覆盖，建议在发布前用 skill-auditor L3 审计执行：
+    - **T-LT Lethal Trifecta**（3 要素：访问私有数据 + 暴露不可信内容 + 对外通信）：三要素同时满足才升级 Critical，需审计期判断"不可信内容"边界
+    - **P-C4 Power-Proportionality**：权力与用途比例的语义判断（如"审计技能需要推送权力 = 不合理"）
+    - **T-AST06 隔离薄弱**：沙箱声明与行为边界的语义判断
+    - **T-AST07 更新漂移**：hash 验证需联网拉取依赖信息
+
+    **引导**：发布前执行 `skill-auditor <skill-path>` 跑 L3 全量审计，可覆盖上述检查项。skill-publisher 与 skill-auditor 形成"发布预扫描 + 审计期深度检查"的两层防护。
 
 ## 执行流程
 

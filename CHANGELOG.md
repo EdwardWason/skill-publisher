@@ -2,6 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.19.0] - 2026-07-17
+
+### Added — 集成 skill-auditor v2.0.0 声明-行为一致性预检
+
+- **Layer 4.5 扩展为 7 项**（references/security-audit.md）：新增第 6 项 `requires.config` 子段检查（D-M3 补充）+ 第 7 项 Name-Summary Coherence（P-C1）
+- **规则 25 新增 3 项预扫描**（18 项 → 21 项）：
+  - 第 19 项：Name-Summary Coherence（P-C1，Medium 不阻断）
+  - 第 20 项：Unsafe Deserialization 检测（T-AST05，High 阻断）
+  - 第 21 项：Cross-Platform OS 限制声明（T-AST10，Low FYI）
+- **规则 31 新增"审计期补充检查引导"**：引导用户用 skill-auditor L3 审计跑 T-LT/P-C4/T-AST06/07 等需语义判断的项
+- **Layer 4.5 末尾新增"未纳入项说明"**：列出 6 类不纳入发布预扫描的检查项及原因
+
+### Changed
+
+- 版本主题：集成 skill-auditor v2.0.0 声明-行为一致性预检
+- skill-publisher 与 skill-auditor 形成"发布预扫描 + 审计期深度检查"两层防护
+
+### Design Note
+
+本次集成基于 skill-auditor v2.0.0 的 4 个新检查项系列（T-AST 8 项 + T-LT 3 项 + D-M 3 项 + P-C 4 项）的可用性研究：
+- D-M 系列（3 项）与 Layer 4.5 + 规则 30 A 几乎完全重叠（v5.18.0/v5.18.1 设计成果），仅需小幅扩展 requires.config 子段
+- T-AST 系列大部分与现有 Layer 重叠，仅 T-AST05（不安全反序列化）和 T-AST10 OS 限制是真正新增价值
+- T-LT 系列不适合发布预扫描（Lethal Trifecta 需审计期运行时上下文），改为引导用户用 skill-auditor
+- P-C 系列仅 P-C1 适合新增（可 Grep 自动化），P-C4 需语义判断
+
 ## [5.18.2] - 2026-07-16
 
 ### Fixed — ClawHub SkillSpector v5.18.1 4 项 Medium findings 修复

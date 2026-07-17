@@ -86,13 +86,13 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 
 > **关键教训**：YARA 规则是字面量匹配，不是语义分析。即使你在文档中写"不要使用 XXX 命令"，XXX 本身就会触发匹配。正确做法是用类别描述指代，不写字面量。
 
-### Layer 4.5: Frontmatter 声明完整性检查 (v5.18 新增，源自 ClawHub docs/skill-format.md 规范；v5.18.1 标注为跨平台通用预检层)
+### Layer 4.5: Frontmatter 声明完整性检查 (v5.18 新增，源自 ClawHub docs/skill-format.md 规范；v5.18.1 标注为跨平台通用预检层；v5.19 扩展为 7 项 — 新增 requires.config 子段 + Name-Summary Coherence)
 
 > **背景**：ClawHub 安全分析核心机制是"声明与行为匹配"。如果代码引用了 `GITHUB_TOKEN` 但 frontmatter 未声明在 `metadata.openclaw.requires.env` / `primaryEnv` / `envVars` 中，会被标记为 metadata mismatch（Context-Inappropriate Capability 的根因之一）。v5.17.x 系列 6 次调试发布的根因正是 frontmatter 完全缺失 `metadata.openclaw` 结构。
 
 > **v5.18.1 跨平台通用性标注**：本层检查不仅适用于 ClawHub 发布，也适用于 SkillHub 发布。底层逻辑——"代码引用的环境变量/二进制必须在 frontmatter 声明"——是 agent skill 这个形态的通用安全属性，与平台无关。SkillHub 虽然没有 `metadata.openclaw` 命名空间强制要求，但保留该结构不会报错（未知字段被忽略），且能提升 skill 在任何平台的可信度。**适用范围**：所有平台发布前的强制预检层。详见 SKILL.md 规则 30「跨平台通用规则预检」。
 
-**检查项**（5 项，源自 [ClawHub skill-format.md](https://github.com/openclaw/clawhub/blob/main/docs/skill-format.md)）：
+**检查项**（7 项，源自 [ClawHub skill-format.md](https://github.com/openclaw/clawhub/blob/main/docs/skill-format.md)；v5.19 新增第 6-7 项源自 skill-auditor v2.0.0）：
 
 | 检查项 | PASS 条件 | FAIL 处理 |
 |--------|----------|----------|
@@ -101,6 +101,8 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 | `primaryEnv` 指向主凭证变量 | `primaryEnv` 值在 `requires.env` 列表中 | 设置 primaryEnv 为最核心的凭证环境变量 |
 | `requires.bins` / `anyBins` 覆盖代码调用的 CLI | 扫描 subprocess 调用的二进制名，在 `requires.bins` 或 `anyBins` 中声明 | 补齐声明 |
 | `envVars` 中可选变量标 `required: false` | `requires.env` 中不放可选变量，可选变量在 `envVars` 中标 `required: false` | 调整结构 |
+| `requires.config` 子段（v5.19 新增，D-M3） | 如 skill 代码读取配置文件（如 `*.json` / `*.yaml`），frontmatter `metadata.openclaw.requires.config` 必须声明配置文件路径或类别；skill 明确不使用配置文件时无需声明 | 补齐 `requires.config` 声明，或在 SKILL.md 明确说明 skill 不使用配置文件 |
+| Name-Summary Coherence（v5.19 新增，P-C1） | frontmatter `name` 关键词与 `description`/`summary` 关键词重叠度 ≥ 30% | WARN（不阻断）：调整 name 或 description 使二者指向同一概念 |
 
 **扫描方式**：
 1. 解析 SKILL.md frontmatter（YAML 解析）
@@ -136,6 +138,21 @@ metadata:
         required: false
         description: 可选，飞书云空间备份
 ```
+
+### Layer 4.5 未纳入的 skill-auditor v2.0.0 检查项
+
+> **背景**（v5.19 新增）：skill-auditor v2.0.0 引入了 4 个新检查项系列（T-AST 8 项 + T-LT 3 项 + D-M 3 项 + P-C 4 项）。其中部分检查项需审计期运行时上下文或语义判断，不适合发布预扫描（静态 Grep 无法覆盖）。以下检查项不纳入 Layer 4.5，建议在发布前用 skill-auditor L3 审计执行：
+
+| 检查项 | 原因 |
+|--------|------|
+| T-AST01/03/04/10 | 与现有 Layer 1-5 + 规则 25 重叠 |
+| T-AST06（隔离薄弱） | 需语义判断"沙箱声明"，Grep 无法覆盖 |
+| T-AST07（更新漂移 hash 验证） | 需联网拉取依赖 hash |
+| T-LT 系列（Lethal Trifecta） | 需审计期运行时上下文，发布期静态扫描会误报 |
+| P-C2/P-C3 | 与规则 25 第 2 项 + Layer 4.5 重叠 |
+| P-C4（Power-Proportionality） | 需 LLM 语义判断"权力与用途比例" |
+
+**设计原则**：发布预扫描（skill-publisher）覆盖声明-行为一致性的静态可判定部分；审计期深度检查（skill-auditor L3）覆盖需语义判断或运行时上下文的部分。两者形成两层防护——发布预扫描快速阻断静态可检测的风险，审计期深度检查覆盖发布预扫描无法覆盖的部分。
 
 ### Layer 5: SSD3 + MCP + User Warnings Scan (v5.9 新增)
 

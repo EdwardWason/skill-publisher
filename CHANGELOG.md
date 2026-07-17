@@ -2,6 +2,39 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.20.0] - 2026-07-17
+
+### Added — 三平台文档语言适配 + 文件差异化发布（源自 2026-07-17 三平台头部 skill 调研）
+
+- **规则 32「三平台文件差异化发布」**：三平台对文件类型要求不同，强制按平台差异化处理。新增三平台文件差异化矩阵（SKILL.md / README.md / CHANGELOG.md / LICENSE / .claude-plugin/ / .github/ / .clawhubignore / .gitignore / references/ 在三平台的保留/剔除策略）。**关键约束**：ClawHub 官方禁止 README.md / CHANGELOG.md（源自 `skill-creator` 3433 安装官方指导 skill 明确声明），SkillHub 拒绝无扩展名文件和 dotfile。ClawHub 和 SkillHub 都用临时副本方式发布，GitHub 推送保留所有文件
+- **规则 33「displayName / summary 语言策略」**：三平台对 displayName 和 summary 语言惯例不同。SkillHub 中文优先（community 源头部 skill 约 70% 用中文 displayName），ClawHub 英文优先（英文 skill 安装量是中文 30-120 倍，中国 skill 常见 `-cn` 后缀 + 双语 displayName）。**决策规则**：中文 skill 用双语并列 displayName（格式 `<English Name> <中文名>`），slug 始终用 ASCII kebab-case
+- **publish-procedures.md 新增 Pre-Publish File Exclusion 段落**：ClawHub 发布前用临时副本剔除 README.md / README.en.md / CHANGELOG.md / .gitignore / .github/，保留 SKILL.md / LICENSE / .claude-plugin/ / .clawhubignore / references/
+- **publishing-guide.md 新增 Cross-Platform File Differentiation Matrix**：三平台文件差异化矩阵 + README 模板增加 ClawHub 禁止标注
+
+### Changed
+
+- **skill-publisher 自身 displayName 双语并列**：`Skill Publisher` → `Skill Publisher 技能发布`（按规则 33，skill-publisher 是中文 skill，双语并列便于 SkillHub 中文用户和 ClawHub 国际用户都能检索到）
+- 版本号 5.19.1 → 5.20.0（minor 升级，新增三平台适配规则）
+
+### Design Note
+
+基于 2026-07-17 三平台头部 skill 调研（SkillHub 30 个头部 skill + ClawHub 9 个头部 skill）：
+
+**SkillHub（腾讯）调研发现**：
+- community 源头部 skill 约 70% 用中文 displayName
+- 平台显式区分 description 和 description_zh 两个字段
+- 不流行 README.md + README.en.md 双 README 模式
+- 触发词内嵌在 description 里
+
+**ClawHub（国际）调研发现**：
+- `skill-creator` 官方明确禁止 README.md / CHANGELOG.md 等辅助文档
+- 英文 skill 安装量是中文 skill 的 30-120 倍
+- 中国 skill 常见 `-cn` 后缀 + 双语 displayName
+- skill-card.md 由平台自动生成（含英文 Use Case / Risks），不要手写或覆盖
+- 所有 9 个调研 skill 都没有 README.md
+
+**核心结论**：skill-publisher 之前的"三平台统一文件集"策略与 ClawHub 官方规范冲突，必须改为"三平台差异化文件集"。这些规则强制写入 skill-publisher，让其他 skill 发布时自动检查，避免发布后被 ClawHub 拒绝或 SkillSpector 标记。
+
 ## [5.19.1] - 2026-07-17
 
 ### Fixed

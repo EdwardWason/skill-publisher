@@ -263,6 +263,51 @@ clawhub publish <path> \
 5. **Protected namespaces**: `clawhub-` prefix and `-clawhub` suffix are protected
 6. **Also avoid**: `openclaw` keyword in slug
 
+### Pre-Publish File Exclusion (v5.20 新增，强制)
+
+**ClawHub 官方禁止辅助文档文件**，发布前必须用临时副本方式剔除以下文件（源自 `skill-creator` 官方指导 skill 明确声明 "Do NOT create extraneous documentation or auxiliary files, including: README.md, INSTALLATION_GUIDE.md, QUICK_REFERENCE.md, CHANGELOG.md, etc."）：
+
+```bash
+# 1. 创建临时副本
+robocopy <skill-dir> <temp-dir> /E /XD .git __pycache__ _backup /XF *.pyc
+
+# 2. 在临时副本中剔除 ClawHub 禁止的文件
+cd <temp-dir>
+# 剔除辅助文档（ClawHub 官方禁止）
+Remove-Item README.md -ErrorAction SilentlyContinue
+Remove-Item README.en.md -ErrorAction SilentlyContinue
+Remove-Item CHANGELOG.md -ErrorAction SilentlyContinue
+# 剔除 dotfile 和 IDE 配置
+Remove-Item .gitignore -ErrorAction SilentlyContinue
+Remove-Item .github -Recurse -Force -ErrorAction SilentlyContinue
+
+# 3. 从临时副本发布（保留 SKILL.md / LICENSE / .claude-plugin/ / .clawhubignore / references/）
+clawhub publish <temp-dir> \
+  --slug <slug> \
+  --name "<Display Name>" \
+  --version <version> \
+  --tags "<tag1>,<tag2>" \
+  --changelog "<changelog text>"
+
+# 4. 发布后立即清理临时副本
+Remove-Item <temp-dir> -Recurse -Force
+```
+
+**保留的文件**（ClawHub 支持）：
+- `SKILL.md` — 唯一的内容载体
+- `LICENSE` — 许可证
+- `.claude-plugin/plugin.json` — Claude Code 元数据
+- `.clawhubignore` — ClawHub 发布专用排除层
+- `references/` — 参考文档子目录
+
+**剔除的文件**（ClawHub 禁止或不支持）：
+- `README.md` / `README.en.md` — ClawHub 官方明确禁止辅助文档
+- `CHANGELOG.md` — 同上，版本说明用 `--changelog` 参数传递
+- `.gitignore` — dotfile，ClawHub 不需要
+- `.github/` — GitHub 社区模板，ClawHub 不需要
+
+**重要**：不要手写或覆盖 `skill-card.md`，该文件由 ClawHub 平台自动生成（含英文 Use Case / Risks / Skill Output 段落）。
+
 ### Slug Collision Prevention
 
 Before publishing, always check:

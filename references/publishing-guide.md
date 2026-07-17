@@ -32,9 +32,34 @@ Complete templates for generating standard skill repo structure files.
 └── references/                 # 详细文档（已有）
 ```
 
+### Cross-Platform File Differentiation Matrix (v5.20 新增，强制)
+
+**三平台对文件类型的要求不同，发布时必须按平台差异化处理**。源自 2026-07-17 三平台头部 skill 调研：ClawHub 官方禁止 README.md / CHANGELOG.md 等辅助文档（`skill-creator` 官方指导 skill 明确声明），SkillHub 拒绝无扩展名文件和 dotfile。
+
+| 文件/目录 | GitHub | ClawHub | SkillHub |
+|-----------|--------|---------|----------|
+| SKILL.md | ✅ 保留 | ✅ 保留 | ✅ 保留 |
+| README.md（中文主文档）| ✅ 保留 | ❌ **剔除** | ⚠️ 可选（不流行）|
+| README.en.md（英文文档）| ✅ 保留 | ❌ **剔除** | ❌ 剔除 |
+| CHANGELOG.md | ✅ 保留 | ❌ **剔除** | ❌ 剔除 |
+| LICENSE（无扩展名）| ✅ 保留 | ✅ 保留 | ❌ **剔除** |
+| .claude-plugin/ | ✅ 保留 | ✅ 保留 | ❌ **剔除** |
+| .github/ | ✅ 保留 | ❌ 剔除 | ❌ 剔除 |
+| .clawhubignore | ✅ 保留 | ✅ 保留 | ❌ 剔除 |
+| .gitignore | ✅ 保留 | ❌ 剔除 | ❌ 剔除 |
+| references/ | ✅ 保留 | ✅ 保留 | ✅ 保留 |
+
+**执行策略**：ClawHub 和 SkillHub 都用临时副本方式发布（在副本中剔除该平台不支持的文件），GitHub 推送保留所有文件。详见 `references/publish-procedures.md` 的 "Pre-Publish File Exclusion" 段落。
+
+**关键约束**：
+- ClawHub 只有 SKILL.md 作为唯一内容载体，skill-card.md 由平台自动生成（不要手写或覆盖）。版本说明用 `clawhub publish --changelog` 参数传递
+- SkillHub 拒绝无扩展名文件（LICENSE）和 dotfile（.gitignore / .claude-plugin/ / .github/ / .clawhubignore），用临时副本方式发布
+
 ---
 
 ### README.md Template
+
+> **⚠️ ClawHub 平台禁止 README.md**（v5.20 新增）：以下 README 模板仅用于 GitHub 仓库。ClawHub 发布时必须剔除 README.md / README.en.md（ClawHub 官方只允许 SKILL.md 作为内容载体）。SkillHub 平台 README.md 可选（不流行）。详见上方"Cross-Platform File Differentiation Matrix"。
 
 #### Section Order（中文主文档）
 

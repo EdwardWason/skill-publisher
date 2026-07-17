@@ -2,8 +2,8 @@
 name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布到三平台/发布技能更新/迭代技能发布 时触发。⚠️ 本技能的行为范围（用户须知）：① 推送代码到外部平台（GitHub/ClawHub/SkillHub），操作对外可见且可能不可逆 ② 同步到本地 TRAE 安装目录（会覆盖已有版本） ③ 在本地 docs/knowledge/ 追加发布日志。执行前会向用户确认。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
-displayName: Skill Publisher
-version: 5.19.1
+displayName: Skill Publisher 技能发布
+version: 5.20.0
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。执行前向用户确认。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
@@ -257,6 +257,55 @@ metadata:
     - **T-AST07 更新漂移**：hash 验证需联网拉取依赖信息
 
     **引导**：发布前执行 `skill-auditor <skill-path>` 跑 L3 全量审计，可覆盖上述检查项。skill-publisher 与 skill-auditor 形成"发布预扫描 + 审计期深度检查"的两层防护。
+
+32. **三平台文件差异化发布**（v5.20 新增，源自 2026-07-17 三平台头部 skill 调研）：三平台对文件类型的要求不同，发布时必须按平台差异化处理，不能三平台推送相同文件集。**这是强制规则，违反会导致 ClawHub 拒绝文件或 SkillHub 400 错误**。
+
+    **三平台文件差异化矩阵**：
+
+    | 文件/目录 | GitHub | ClawHub | SkillHub |
+    |-----------|--------|---------|----------|
+    | SKILL.md | ✅ 保留 | ✅ 保留 | ✅ 保留 |
+    | README.md（中文主文档）| ✅ 保留 | ❌ **剔除** | ⚠️ 可选（不流行）|
+    | README.en.md（英文文档）| ✅ 保留 | ❌ **剔除** | ❌ 剔除 |
+    | CHANGELOG.md | ✅ 保留 | ❌ **剔除** | ❌ 剔除 |
+    | LICENSE（无扩展名）| ✅ 保留 | ✅ 保留 | ❌ **剔除** |
+    | .claude-plugin/ | ✅ 保留 | ✅ 保留 | ❌ **剔除** |
+    | .github/ | ✅ 保留 | ❌ 剔除 | ❌ 剔除 |
+    | .clawhubignore | ✅ 保留 | ✅ 保留 | ❌ 剔除 |
+    | .gitignore | ✅ 保留 | ❌ 剔除 | ❌ 剔除 |
+    | references/ | ✅ 保留 | ✅ 保留 | ✅ 保留 |
+
+    **关键约束**：
+    - **ClawHub 官方禁止 README.md / CHANGELOG.md**：源自 `skill-creator`（3433 安装的官方指导 skill）明确声明 "Do NOT create extraneous documentation or auxiliary files, including: README.md, INSTALLATION_GUIDE.md, QUICK_REFERENCE.md, CHANGELOG.md, etc."。ClawHub 只有 SKILL.md 作为唯一内容载体，skill-card.md 由平台自动生成（含英文 Use Case / Risks / Skill Output 段落，不要手写或覆盖）。版本说明用 `clawhub publish --changelog` 参数传递（中文允许）
+    - **SkillHub 拒绝无扩展名文件和 dotfile**：LICENSE / .gitignore / .claude-plugin/ / .github/ / .clawhubignore 都会被拒（400 错误）。用临时副本方式发布（在副本中删除这些文件）
+    - **ClawHub 也应使用临时副本方式**：剔除 README.md / README.en.md / CHANGELOG.md / .gitignore / .github/ 后发布，避免上传 ClawHub 禁止的辅助文档
+    - **发布后立即恢复或清理**：临时副本发布完成后立即删除；如果是原目录移除文件方式，发布后立即恢复
+
+    **执行流程**：
+    1. GitHub 推送：保留所有文件（README.md / README.en.md / CHANGELOG.md / LICENSE / .claude-plugin/ / .github/）
+    2. ClawHub 发布：用临时副本，剔除 README.md / README.en.md / CHANGELOG.md / .gitignore / .github/，保留 SKILL.md / LICENSE / .claude-plugin/ / .clawhubignore / references/
+    3. SkillHub 发布：用临时副本，剔除 LICENSE / .claude-plugin/ / .github/ / .clawhubignore / .gitignore / README.en.md / CHANGELOG.md，保留 SKILL.md / README.md（可选）/ references/
+
+    **预扫描检查**：发布前必须确认目标平台的临时副本已剔除该平台不支持的文件。未剔除 = Medium finding，要求作者在发布前剔除。
+
+33. **displayName / summary 语言策略**（v5.20 新增，源自 2026-07-17 三平台头部 skill 调研）：三平台对 displayName 和 summary 的语言惯例不同，发布时必须按平台调性选择语言。
+
+    **平台调性**：
+    - **SkillHub（腾讯）**：中文优先、英文兼容。community 源头部 skill 约 70% 用中文 displayName（如"微信公众号终极工作台"、"PDF识别提取专家"）
+    - **ClawHub（国际）**：英文优先、包容中文。英文 skill 安装量是中文 skill 的 30-120 倍。中国 skill 常见 `-cn` 后缀 + 双语 displayName（如"CN PPT Outline Writer PPT大纲生成器"）
+    - **GitHub**：国际开源标准，README.md 英文为主、中文为副
+
+    **displayName 语言决策规则**：
+    - **中文 skill**（触发词/正文是中文）：displayName 用双语并列，格式 `<English Name> <中文名>`（如 "Skill Publisher 技能发布"）。这样 SkillHub 中文用户和 ClawHub 国际用户都能检索到
+    - **英文/双语 skill**：displayName 用英文
+    - **slug 始终用 ASCII kebab-case**，不要写中文。中文 skill 可考虑加 `-cn` 后缀便于国际用户识别
+
+    **summary / description 语言决策规则**：
+    - **中文 skill**：summary 和 description 用中文（含中文触发词）。SkillHub 的 description 即 summary（无独立 summary 字段），中文 description 在 SkillHub 中文用户检索时更有效
+    - **英文/双语 skill**：summary 和 description 用英文
+    - **触发词内嵌在 description 里**：不要单独字段，直接写 "触发词：词1、词2、词3" 或 "Use when: (1)... (2)..." 格式
+
+    **预扫描检查**：发布前检查 displayName 语言是否符合上述决策规则。中文 skill 用纯英文 displayName = WARN（建议改为双语并列）；英文 skill 用纯中文 displayName = WARN（建议改为英文或双语并列）。WARN 级别不阻断发布。
 
 ## 执行流程
 

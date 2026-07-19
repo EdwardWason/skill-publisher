@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.20.1] - 2026-07-19
+
+### Fixed — ClawHub displayName 污染事故修复（源自 2026-07-19 用户反馈）
+
+- **ClawHub displayName 被临时副本目录名污染**：v5.20.0 发布时临时副本目录名 `_clawhub_temp_skill_publisher`，未带 `--name` 参数，ClawHub 从目录名推断 displayName（下划线转空格 + 首字母大写），导致 ClawHub 网页显示名称变成 "Clawhub Temp Skill Publisher"（正确应为 "Skill Publisher 技能发布"）。v5.20.1 修复：带 `--name "Skill Publisher 技能发布"` + 目录名改为 `skill-publisher-ai-clawhub-copy`
+
+### Changed
+
+- **规则 32 强化**：新增"ClawHub 临时副本发布必须带 `--name` 参数"强制约束 + 临时副本目录名规范（`<slug>-clawhub-copy` 格式，禁止含 temp 的命名）
+- **publish-procedures.md 强化**：Pre-Publish File Exclusion 段落增加 `--name` 强制要求说明 + 事故案例 + 目录名规范
+- 版本号 5.20.0 → 5.20.1（patch 递增，修复 displayName 污染）
+
+### Lesson Learned
+
+**ClawHub displayName 推断机制**：未指定 `--name` 时，ClawHub 会从**发布目录名**推断 displayName（下划线转空格 + 首字母大写）。这对帮助其他 skill 上传到 ClawHub 极具提醒意义——临时副本方式发布时必须显式带 `--name` 参数，且临时副本目录名要规范。此规则已强制写入规则 32 + publish-procedures.md，让其他 skill 发布时自动检查。
+
 ## [5.20.0] - 2026-07-17
 
 ### Added — 三平台文档语言适配 + 文件差异化发布（源自 2026-07-17 三平台头部 skill 调研）

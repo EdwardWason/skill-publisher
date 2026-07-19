@@ -263,16 +263,17 @@ clawhub publish <path> \
 5. **Protected namespaces**: `clawhub-` prefix and `-clawhub` suffix are protected
 6. **Also avoid**: `openclaw` keyword in slug
 
-### Pre-Publish File Exclusion (v5.20 新增，强制)
+### Pre-Publish File Exclusion (v5.20 新增，v5.20.1 强化 --name 强制要求)
 
 **ClawHub 官方禁止辅助文档文件**，发布前必须用临时副本方式剔除以下文件（源自 `skill-creator` 官方指导 skill 明确声明 "Do NOT create extraneous documentation or auxiliary files, including: README.md, INSTALLATION_GUIDE.md, QUICK_REFERENCE.md, CHANGELOG.md, etc."）：
 
 ```bash
-# 1. 创建临时副本
-robocopy <skill-dir> <temp-dir> /E /XD .git __pycache__ _backup /XF *.pyc
+# 1. 创建临时副本（v5.20.1 关键：目录名必须用 <slug>-clawhub-copy 格式，禁止用 _clawhub_temp_<slug>）
+#    原因：ClawHub 未指定 --name 时会从目录名推断 displayName，含 temp/copy/_ 的目录名会污染 displayName
+robocopy <skill-dir> <slug>-clawhub-copy /E /XD .git __pycache__ _backup /XF *.pyc
 
 # 2. 在临时副本中剔除 ClawHub 禁止的文件
-cd <temp-dir>
+cd <slug>-clawhub-copy
 # 剔除辅助文档（ClawHub 官方禁止）
 Remove-Item README.md -ErrorAction SilentlyContinue
 Remove-Item README.en.md -ErrorAction SilentlyContinue
@@ -281,8 +282,8 @@ Remove-Item CHANGELOG.md -ErrorAction SilentlyContinue
 Remove-Item .gitignore -ErrorAction SilentlyContinue
 Remove-Item .github -Recurse -Force -ErrorAction SilentlyContinue
 
-# 3. 从临时副本发布（保留 SKILL.md / LICENSE / .claude-plugin/ / .clawhubignore / references/）
-clawhub publish <temp-dir> \
+# 3. 从临时副本发布（v5.20.1 强制：必须带 --name 参数，否则 displayName 会被目录名污染）
+clawhub publish <slug>-clawhub-copy \
   --slug <slug> \
   --name "<Display Name>" \
   --version <version> \
@@ -290,7 +291,7 @@ clawhub publish <temp-dir> \
   --changelog "<changelog text>"
 
 # 4. 发布后立即清理临时副本
-Remove-Item <temp-dir> -Recurse -Force
+Remove-Item <slug>-clawhub-copy -Recurse -Force
 ```
 
 **保留的文件**（ClawHub 支持）：
@@ -305,6 +306,12 @@ Remove-Item <temp-dir> -Recurse -Force
 - `CHANGELOG.md` — 同上，版本说明用 `--changelog` 参数传递
 - `.gitignore` — dotfile，ClawHub 不需要
 - `.github/` — GitHub 社区模板，ClawHub 不需要
+
+**⚠️ --name 参数强制要求（v5.20.1 新增，源自 2026-07-19 displayName 污染事故）**：
+- **必须显式带 `--name "<displayName>"` 参数**，不能省略
+- **根因**：ClawHub 在未指定 `--name` 时会从**临时副本目录名**推断 displayName（下划线转空格 + 首字母大写）。临时副本目录名 `_clawhub_temp_skill_publisher` 被推断成 "Clawhub Temp Skill Publisher"，污染了原本应为 "Skill Publisher 技能发布" 的 displayName
+- **临时副本目录名规范**：必须用 `<slug>-clawhub-copy` 格式（如 `skill-publisher-ai-clawhub-copy`），禁止用 `_clawhub_temp_<slug>` / `_skillhub_temp_<slug>` 这类含 temp 的命名
+- **事故案例**：skill-publisher v5.20.0 发布时临时副本目录名 `_clawhub_temp_skill_publisher`，未带 `--name` 参数，导致 ClawHub 网页显示名称变成 "Clawhub Temp Skill Publisher"。v5.20.1 修复：带 `--name "Skill Publisher 技能发布"` + 目录名改为 `skill-publisher-ai-clawhub-copy`
 
 **重要**：不要手写或覆盖 `skill-card.md`，该文件由 ClawHub 平台自动生成（含英文 Use Case / Risks / Skill Output 段落）。
 

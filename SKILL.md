@@ -3,7 +3,7 @@ name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布到三平台/发布技能更新/迭代技能发布 时触发。⚠️ 本技能的行为范围（用户须知）：① 推送代码到外部平台（GitHub/ClawHub/SkillHub），操作对外可见且可能不可逆 ② 同步到本地 TRAE 安装目录（会覆盖已有版本） ③ 在本地 docs/knowledge/ 追加发布日志。执行前会向用户确认。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
 displayName: Skill Publisher 技能发布
-version: 5.20.0
+version: 5.20.1
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。执行前向用户确认。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
@@ -279,14 +279,16 @@ metadata:
     - **ClawHub 官方禁止 README.md / CHANGELOG.md**：源自 `skill-creator`（3433 安装的官方指导 skill）明确声明 "Do NOT create extraneous documentation or auxiliary files, including: README.md, INSTALLATION_GUIDE.md, QUICK_REFERENCE.md, CHANGELOG.md, etc."。ClawHub 只有 SKILL.md 作为唯一内容载体，skill-card.md 由平台自动生成（含英文 Use Case / Risks / Skill Output 段落，不要手写或覆盖）。版本说明用 `clawhub publish --changelog` 参数传递（中文允许）
     - **SkillHub 拒绝无扩展名文件和 dotfile**：LICENSE / .gitignore / .claude-plugin/ / .github/ / .clawhubignore 都会被拒（400 错误）。用临时副本方式发布（在副本中删除这些文件）
     - **ClawHub 也应使用临时副本方式**：剔除 README.md / README.en.md / CHANGELOG.md / .gitignore / .github/ 后发布，避免上传 ClawHub 禁止的辅助文档
+    - **ClawHub 临时副本发布必须带 `--name` 参数**（v5.20.1 新增，源自 2026-07-19 displayName 污染事故）：ClawHub 在未指定 `--name` 时会从**临时副本目录名**推断 displayName（下划线转空格 + 首字母大写）。如果临时副本目录名含 `temp`/`copy`/`_` 等词，displayName 会被污染成 "Clawhub Temp Skill Publisher" 这类错误名称。**强制要求**：① `clawhub publish` 命令必须显式带 `--name "<displayName>"` 参数 ② 临时副本目录名必须用 `<slug>-clawhub-copy` 格式（如 `skill-publisher-ai-clawhub-copy`），禁止用 `_clawhub_temp_<slug>` 这类含 temp 的命名
+    - **SkillHub 临时副本目录名无此问题**：SkillHub 从 SKILL.md frontmatter 的 `displayName` 字段读取，不从目录名推断。但建议也用 `<slug>-skillhub-copy` 格式保持一致性
     - **发布后立即恢复或清理**：临时副本发布完成后立即删除；如果是原目录移除文件方式，发布后立即恢复
 
     **执行流程**：
     1. GitHub 推送：保留所有文件（README.md / README.en.md / CHANGELOG.md / LICENSE / .claude-plugin/ / .github/）
-    2. ClawHub 发布：用临时副本，剔除 README.md / README.en.md / CHANGELOG.md / .gitignore / .github/，保留 SKILL.md / LICENSE / .claude-plugin/ / .clawhubignore / references/
-    3. SkillHub 发布：用临时副本，剔除 LICENSE / .claude-plugin/ / .github/ / .clawhubignore / .gitignore / README.en.md / CHANGELOG.md，保留 SKILL.md / README.md（可选）/ references/
+    2. ClawHub 发布：用临时副本（目录名 `<slug>-clawhub-copy`），剔除 README.md / README.en.md / CHANGELOG.md / .gitignore / .github/，保留 SKILL.md / LICENSE / .claude-plugin/ / .clawhubignore / references/。**publish 命令必须带 `--name "<displayName>"`**
+    3. SkillHub 发布：用临时副本（目录名 `<slug>-skillhub-copy`），剔除 LICENSE / .claude-plugin/ / .github/ / .clawhubignore / .gitignore / README.en.md / CHANGELOG.md，保留 SKILL.md / README.md（可选）/ references/
 
-    **预扫描检查**：发布前必须确认目标平台的临时副本已剔除该平台不支持的文件。未剔除 = Medium finding，要求作者在发布前剔除。
+    **预扫描检查**：发布前必须确认目标平台的临时副本已剔除该平台不支持的文件。未剔除 = Medium finding，要求作者在发布前剔除。**ClawHub 发布前检查 publish 命令是否带 `--name` 参数**：未带 = FAIL（阻断发布），因为会导致 displayName 被目录名污染。
 
 33. **displayName / summary 语言策略**（v5.20 新增，源自 2026-07-17 三平台头部 skill 调研）：三平台对 displayName 和 summary 的语言惯例不同，发布时必须按平台调性选择语言。
 
@@ -306,6 +308,25 @@ metadata:
     - **触发词内嵌在 description 里**：不要单独字段，直接写 "触发词：词1、词2、词3" 或 "Use when: (1)... (2)..." 格式
 
     **预扫描检查**：发布前检查 displayName 语言是否符合上述决策规则。中文 skill 用纯英文 displayName = WARN（建议改为双语并列）；英文 skill 用纯中文 displayName = WARN（建议改为英文或双语并列）。WARN 级别不阻断发布。
+
+34. **ClawHub publish --name 与临时副本命名铁律**（v5.21 新增，源自 2026-07-19 feishu-card-design displayName 错误事件）：`clawhub publish` 命令的 `--name` 参数和临时副本目录命名必须遵守以下铁律，否则 displayName 会被 ClawHub 平台永久锁定为错误值（无法通过新版本更新）。
+
+    **铁律 A：`clawhub publish` 必须显式传 `--name`**
+    - **强制要求**：每次 `clawhub publish` 必须显式传 `--name "<Display Name>"`，不能省略
+    - **错误根因**：ClawHub CLI 在未传 `--name` 时，会从 `<path>` 目录名派生 displayName（去前导下划线 → 下划线转空格 → 每段首字母大写），首次发布后 displayName 永久锁定在 slug 上，新版本无法更新
+    - **典型反例**：`clawhub publish _tmp_feishu_card_clawhub --slug feishu-card-design --version 1.0.0`（漏传 `--name`，导致 displayName 被派生为 `Tmp Feishu Card Clawhub`）
+    - **正确写法**：`clawhub publish <path> --slug feishu-card-design --name "Feishu Card Design 飞书卡片消息设计规范" --version 1.0.2`
+    - **`--name` 取值规则**：与 SKILL.md frontmatter 的 `displayName` 字段保持完全一致。中文 skill 用双语并列格式（规则 33），英文 skill 用英文
+
+    **铁律 B：临时副本目录命名必须用 `<slug>-tmp-<platform>` 格式**
+    - **强制格式**：临时副本目录名必须是 `<slug>-tmp-<platform>`（如 `feishu-card-design-tmp-clawhub`、`feishu-card-design-tmp-skillhub`）
+    - **禁止格式**：`_tmp_<slug>_<platform>`（前缀下划线 + slug 用下划线连接）会被 ClawHub CLI 派生出错误的 displayName（`_tmp_feishu_card_clawhub` → `Tmp Feishu Card Clawhub`）
+    - **更优解**：临时副本目录名直接用 `<slug>` 本名（如 `feishu-card-design`），放在父目录下区分平台（如 `_tmp_clawhub/feishu-card-design/`）。这样即使漏传 `--name`，派生出的 displayName 也至少是正确的 slug 形式
+    - **目录命名 vs --name 的关系**：铁律 A 是根本保障（必须传 --name），铁律 B 是双重保险（即使漏传 --name 也能派生出合理 displayName）
+
+    **预扫描检查**：发布前检查 `clawhub publish` 命令是否包含 `--name` 参数，以及临时副本目录名是否符合 `<slug>-tmp-<platform>` 格式。任一不符合 = Medium finding，要求作者修正后再发布。
+
+    **故障案例**：feishu-card-design v1.0.0 首次发布时，临时副本目录命名为 `_tmp_feishu_card_clawhub` 且未传 `--name`，导致 ClawHub 平台 displayName 被永久派生为 `Tmp Feishu Card Clawhub`，与 slug `feishu-card-design` 严重不符。v1.0.2 通过临时副本重命名 + 显式 `--name` 修复，但若新版本无法更新已锁定的 displayName，则需走 `clawhub delete` + 重新首发流程。
 
 ## 执行流程
 
@@ -336,8 +357,10 @@ GitHub 推送完成后、ClawHub 发布前，必须删除 Step 4 中可能产生
 
 ```bash
 # 1. 正式发布（v5.18 现实校准：CLI v0.9.0 实际只支持 `clawhub publish`，文档的 `clawhub skill publish` 是未来版本方向，当前不可用）
+# v5.21 新增 --name 强制要求（规则 34）：必须显式传 --name，否则从目录名派生 displayName 永久锁定错误值
 clawhub publish <path> \
   --slug <slug> \
+  --name "<Display Name>" \
   --version <version> \
   --tags "<ASCII-only>" \
   --changelog "<text>"

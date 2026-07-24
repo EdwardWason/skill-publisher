@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.21.0] - 2026-07-19
+
+### Changed — 规则 33 强化：中文 skill 纯英文 displayName 从 WARN 升级为 FAIL（源自 2026-07-19 data-prompt-coach SkillHub displayName 纯英文事件）
+
+- **规则 33 预扫描检查级别升级**：中文 skill 用纯英文 displayName 从 WARN（不阻断）升级为 FAIL（阻断发布），要求作者修改为双语并列格式后再发布
+- **事件背景**：用户反馈 data-prompt-coach 在 SkillHub 平台发布的技能名称是纯英文 "Data Prompt Coach"，没有中文显示。根因是 data-prompt-coach 是中文 skill（description 中文 + 触发词中文），但 frontmatter `displayName: "Data Prompt Coach"` 是纯英文，违反规则 33。但 v5.20.1 的规则 33 预扫描检查是 WARN 级别不阻断，导致发布时没有强制修改
+- **中文 skill 判定标准**：frontmatter description 含中文字符，或触发词列表含中文短语
+- **判定流程**：① 提取 frontmatter description ② 检测是否含中文字符（Unicode CJK 范围）③ 若含中文且 displayName 不含中文字符 = FAIL ④ FAIL 时报告并要求修改为双语并列格式
+- **设计原则**：SkillHub 是中文优先平台（腾讯），纯英文 displayName 在 SkillHub 中文用户检索时命中率低；ClawHub 国际用户也能通过英文部分检索到。双语并列是中文 skill 的最佳实践，不是可选项
+
+### Version Note
+
+- 版本号 5.20.1 → 5.21.0（minor 升级，规则强化导致行为变更：WARN → FAIL 阻断发布）
+
 ## [5.20.1] - 2026-07-19
 
 ### Fixed — ClawHub displayName 污染事故修复（源自 2026-07-19 用户反馈）

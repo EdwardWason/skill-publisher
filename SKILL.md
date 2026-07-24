@@ -3,7 +3,7 @@ name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布到三平台/发布技能更新/迭代技能发布 时触发。⚠️ 本技能的行为范围（用户须知）：① 推送代码到外部平台（GitHub/ClawHub/SkillHub），操作对外可见且可能不可逆 ② 同步到本地 TRAE 安装目录（会覆盖已有版本） ③ 在本地 docs/knowledge/ 追加发布日志。执行前会向用户确认。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
 displayName: Skill Publisher 技能发布
-version: 5.20.1
+version: 5.21.0
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。执行前向用户确认。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
@@ -307,7 +307,7 @@ metadata:
     - **英文/双语 skill**：summary 和 description 用英文
     - **触发词内嵌在 description 里**：不要单独字段，直接写 "触发词：词1、词2、词3" 或 "Use when: (1)... (2)..." 格式
 
-    **预扫描检查**：发布前检查 displayName 语言是否符合上述决策规则。中文 skill 用纯英文 displayName = WARN（建议改为双语并列）；英文 skill 用纯中文 displayName = WARN（建议改为英文或双语并列）。WARN 级别不阻断发布。
+    **预扫描检查**（v5.21.0 强化：WARN → FAIL，源自 2026-07-19 data-prompt-coach SkillHub displayName 纯英文事件）：发布前检查 displayName 语言是否符合上述决策规则。**中文 skill 用纯英文 displayName = FAIL（阻断发布）**，要求作者修改为双语并列格式后再发布；英文 skill 用纯中文 displayName = WARN（建议改为英文或双语并列）。**中文 skill 判定标准**：frontmatter description 含中文字符，或触发词列表含中文短语。**判定流程**：① 提取 frontmatter description ② 检测是否含中文字符（Unicode CJK 范围）③ 若含中文且 displayName 不含中文字符 = FAIL ④ FAIL 时报告"中文 skill 的 displayName '<X>' 是纯英文，违反规则 33。请改为双语并列格式 '<English Name> <中文名>'（如 'Data Prompt Coach 数据分析 Prompt 教练'）后重新发布"。**设计原则**：SkillHub 是中文优先平台（腾讯），纯英文 displayName 在 SkillHub 中文用户检索时命中率低；ClawHub 国际用户也能通过英文部分检索到。双语并列是中文 skill 的最佳实践，不是可选项
 
 34. **ClawHub publish --name 与临时副本命名铁律**（v5.21 新增，源自 2026-07-19 feishu-card-design displayName 错误事件）：`clawhub publish` 命令的 `--name` 参数和临时副本目录命名必须遵守以下铁律，否则 displayName 会被 ClawHub 平台永久锁定为错误值（无法通过新版本更新）。
 

@@ -39,6 +39,18 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 
 **PASS criteria**: Zero matches. No local absolute paths, no Windows usernames, no `.trae-cn` directory references.
 
+**扫描范围强化（v5.22 新增，源自 2026-07-20 周度审查建议）**：除 SKILL.md/references/CHANGELOG.md 等常规文件外，必须额外扫描以下易遗漏目录：
+- `examples/` — 示例代码目录，常包含真实路径和占位符凭证（最易被忽略）
+- `samples/` / `demo/` / `samples-output/` — 示例输出目录
+- `tests/` / `test-data/` — 测试目录，可能含 fixture 数据
+- `scripts/` — 脚本目录，可能含硬编码路径
+
+**examples 目录专项扫描规则（v5.22 新增）**：
+1. **路径扫描**：examples/ 下所有文件（.md/.py/.js/.json/.yaml）执行上述 Grep pattern
+2. **凭证占位符扫描**：扫描 examples/ 中是否包含看似占位符但实为真实凭证的字符串（如 `your_xxx_here` 但实际值是 `cli_xxx`）。检测模式：占位符文本 + 实际值前缀同时出现 = WARN
+3. **真实路径泄露扫描**：examples/ 中的示例输出常含真实路径（如 `d:\TRAE SOLO CN\project\...`）。检测模式：上述 Grep pattern，但 examples/ 中的匹配 = WARN（建议改为 `<project-dir>` 等占位符），不阻断发布
+4. **用户身份信息扫描**：examples/ 中的日志/输出可能含用户名/邮箱/IP。检测模式：`Administrator|admin@|@users\.noreply|192\.168\.|127\.0\.0\.1`，匹配 = WARN
+
 **Common leak patterns**:
 
 | Pattern | Example | Fix |
@@ -46,6 +58,16 @@ Complete procedures for pre-publish security scanning, privacy scrubbing, and di
 | Absolute paths in docs | `d:\TRAE SOLO CN\project\...` | Use relative paths |
 | Username in paths | `C:\Users\Administrator\...` | Use `~` or `<user-home>` |
 | .trae-cn references | `.trae-cn/skills/...` | Use `.trae/skills/` (generic) |
+| **examples/ 真实路径泄露**（v5.22） | `examples/output.md` 含 `d:\TRAE SOLO CN\project\...` | 改为 `<project-dir>/...` 占位符 |
+| **examples/ 凭证占位符混入真实值**（v5.22） | `examples/config.json` 含 `your_app_id_here` 但旁边有 `cli_xxx` | 移除真实值，统一为 `your_xxx_here` |
+| **examples/ 用户身份信息**（v5.22） | `examples/run.log` 含 `Administrator` 或 `admin@company.com` | 改为 `<user>` 或 `<user>@<org>` |
+
+**FAIL 条件分级（v5.22 新增）**：
+- SKILL.md/references/CHANGELOG.md 中匹配 = **FAIL**（阻断发布）
+- examples/ 中匹配 = **WARN**（不阻断，提示作者修复）
+- tests/ 中匹配 = **WARN**（不阻断，提示作者修复）
+
+**设计原则**：examples/ 和 tests/ 中的路径泄露风险低于核心文档，但仍应修复。WARN 级别让作者知道有改进空间，不阻断发布流程。
 
 ### Layer 3: Dangerous Command Scan
 

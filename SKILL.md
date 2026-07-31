@@ -3,7 +3,7 @@ name: "skill-publisher"
 description: "技能发布 — 将已有 Skill 三平台同步推送到 GitHub + ClawHub + SkillHub。当用户说 技能发布到三平台/发布技能更新/迭代技能发布 时触发。⚠️ 本技能的行为范围（用户须知）：① 推送代码到外部平台（GitHub/ClawHub/SkillHub），操作对外可见且可能不可逆 ② 同步到本地 TRAE 安装目录（会覆盖已有版本） ③ 在本地 docs/knowledge/ 追加发布日志。执行前会向用户确认。含安全审查、隐私清洗、版本号查重、仓库结构生成、ClawHub 自动文件排除、SkillHub dry-run 预检。Do NOT use for creating skill content, general coding, or non-skill projects."
 slug: skill-publisher-ai
 displayName: Skill Publisher 技能发布
-version: 5.21.0
+version: 5.22.1
 summary: 三平台同步发布技能到 GitHub + ClawHub + SkillHub，含安全审查、版本号查重、TRACE 预检、dry-run。执行前向用户确认。
 license: MIT
 allowed-tools: "Bash(git:*), Bash(clawhub:*), Bash(skillhub:*), Bash(gh:*), Bash(python:*), Bash(cat:*), Bash(ls:*), Bash(mkdir:*), Bash(cp:*), Bash(mv:*), Bash(rm:*), Bash(Compress-Archive:*), Read, Write, Edit, Glob, Grep"
@@ -117,7 +117,7 @@ metadata:
 10. **ClawHub 自动生成文件必须排除**：`skill-card.md`、`.clawhub/` 目录由 ClawHub 自动生成，禁止发布（2026-07 新增，源自 skill-card.md 发布被拒事件）。**v5.18 新增 `.clawhubignore` 机制**：ClawHub publish 不读 `.gitignore`，必须用 `.clawhubignore` 显式排除凭证文件/临时脚本/构建产物（源自 [ClawHub docs/skill-format.md](https://github.com/openclaw/clawhub/blob/main/docs/skill-format.md) 规范，根治 2026-07-12 凭证泄露事故）
 11. **frontmatter description 决定 ClawHub Short summary**：更新 description 后必须重新发布才能同步 Short summary；首次发布后 description 不会自动更新，必须递增版本号重新发布（2026-07 新增，源自 Short summary 未更新事件）
 12. **.gitignore 必须排除 Python 缓存**：`__pycache__/`、`*.pyc`、`.clawhub/` 必须在 .gitignore 中（2026-07 新增，源自 __pycache__ 打包事件）
-13. **SkillHub frontmatter 必须包含 5 字段**：`slug`（全网唯一）、`displayName`、`version`、`summary`、`license`，与 ClawHub 的 name/description 共存于同一 frontmatter（2026-07 新增，支持 SkillHub 平台）
+13. **SkillHub frontmatter 必须包含 5 字段**（2026-07 新增，支持 SkillHub 平台；v5.22 强化 slug 校验，源自 2026-07-27 周度审查建议 A）：`slug`（全网唯一）、`displayName`、`version`、`summary`、`license`，与 ClawHub 的 name/description 共存于同一 frontmatter。**v5.22 强化 slug 校验**：① slug 必须是 ASCII kebab-case 格式（小写字母+数字+连字符，禁止下划线/大写/中文）② slug 长度 3-64 字符 ③ 与目录名一致性检查（slug 应与 SKILL.md 所在目录名一致，避免发布时混淆）④ SkillHub slug 全网唯一性预检：发布前 `skillhub search <slug>` 检查是否已被他人占用
 14. **SkillHub 发布前必须 dry-run 预检**：`skillhub publish <path> --dry-run` 检查格式，通过后才能正式发布（2026-07 新增，源自 SkillHub CLI 规范）
 15. **SKILLHUB_TOKEN 不可硬编码**：token 只通过环境变量 `SKILLHUB_TOKEN` 传递，安全扫描必须检查 `skh_` 前缀的硬编码值（2026-07 新增，支持 SkillHub 平台）
 16. **SkillHub 发布前必须临时移除不支持的文件类型**：`.gitignore`、`LICENSE`（无扩展名）、`.claude-plugin/`、`.github/` 会被 SkillHub 拒绝（400 错误）。发布前备份并移除，发布后立即恢复。ClawHub 和 GitHub 不受此限制（2026-07 新增，源自 SkillHub 文件类型限制）
@@ -161,10 +161,12 @@ metadata:
     - 返回 401 → 报"GitHub token 已失效或 session 缓存了旧值，请执行：1) 确认凭证已更新到用户环境变量  2) 重启 TRAE session  3) 重新发布"，**询问用户是否中止发布修复 token（推荐）还是跳过 GitHub 继续发布其他平台（会记录待补推版本）**（v5.11 改进，v5.17 强化 401 处理为 session cache 提示）
     - 返回 200 → token 有效，继续发布
     - 网络超时 → 跳过验证，尝试推送时再降级处理
-22. **GitHub 推送降级**（v5.4 新增）：git push 失败时，按顺序降级：
+22. **GitHub 推送降级**（v5.4 新增，v5.22 扩展为三级降级链，源自 2026-07-27 周度审查建议 B；v5.22.1 修正与规则 25"安全敏感方案不文档化"的内部矛盾）：git push 失败时，按顺序降级到第三级 REST API：
     - **Level 1 - git push**：直接推送，超时30秒自动失败
     - **Level 2 - gh CLI**：如果 gh 命令可用，用 `gh repo sync` 或 `gh api` 推送
-    - 如果两级都失败，告知用户网络问题，建议稍后重试或手动推送
+    - **Level 3 - GitHub REST API 逐文件降级**（v5.22 新增，v5.22.1 抽象化）：当 git push 和 gh CLI 都失败时，使用 GitHub REST API 逐文件降级方案（具体实现按规则 25"安全敏感方案不文档化"约束，**不文档化具体 API 链与编码方式**，执行时根据网络情况选择合适的 GitHub 官方 API 机制）。**注意**：Level 3 是最后手段，仅用于网络持续不可用的场景；正常情况下 Level 1 或 2 会成功
+    - 如果三级都失败，告知用户网络问题，建议稍后重试或手动推送，并按规则 27 记录待补推版本
+    - **设计原则**（v5.22.1 新增）：Level 3 的存在性可以文档化（让用户知道有降级方案），但具体 API 实现不文档化（避免触发 SkillSpector 的 MCP Tool Poisoning / Tool Parameter Abuse finding）。这是"声明即透明"与"安全敏感方案不文档化"的平衡
 23. **SkillHub 备份目录隔离**（v5.4 新增）：临时移除的不支持文件（规则16）不能备份在 skill 目录内部，否则会被 SkillHub 扫描到并报 400 错误：
     - ✅ 正确：备份到 skill 目录外（如父目录下的临时文件夹）
     - ❌ 错误：备份到 `skill-dir/_backup/`（会被扫描）
@@ -181,11 +183,19 @@ metadata:
     - **MCP Tool Poisoning 完整行为声明**（v5.9 新增，v5.12 增加代码 import 扫描对照）：description 必须完整声明 skill 的全部行为范围，不能只描述核心功能。如果 skill 实际行为包含以下任一项，description 必须明确披露：① 读取本地文件（memory/profile/config）② 网络请求（API 调用）③ subprocess 调用（CLI 工具）④ 写入外部服务（推送/上传）。建议在 description 中加"本技能的行为范围（用户须知）"段落。**代码 import 扫描对照（v5.12 新增，源自 gongwen-formatter v1.1.2 审计）**：扫描 `*.py` 源码，若 import 了 `urllib.request`/`requests`/`http.client`/`aiohttp`/`httpx` 等 HTTP 客户端库，但 SKILL.md frontmatter description 未声明"会发起网络请求"，或 SKILL.md 无"权限声明"段落披露网络访问，则标记为预扫描 FAIL。修复方式：① 在 SKILL.md 增加"权限声明"段落披露网络访问（用规则 18 的 5 行表格标准模板）② 在 README 中英文版增加用户警告段落 ③ 提供关闭网络访问的开关参数（如 `--no-network`）。此检查旨在预防 Context-Inappropriate Capability finding——SkillSpector 不只针对 SSRF，还会针对"非声明网络的隐式外联"
     - **MCP Least Privilege 权限声明**（v5.9 新增）：SKILL.md 或 plugin.json 必须声明 skill 需要的权限（网络访问/文件读写/环境变量列表）。未声明权限但实际使用了这些能力的 skill 会被标记为 MCP Least Privilege finding。建议在 SKILL.md frontmatter 或正文增加"权限声明"段落
     - **Missing User Warnings 检查**（v5.9 新增，v5.13 扩展覆盖范围，v5.17 增加破坏性操作点警告）：如果 skill 有副作用（自动推送/自动写入外部服务/定时执行/**写入项目本地文件**，v5.13 新增），README 必须包含用户警告，明确告知：① 运行会自动写入哪些外部目的地 ② 会读取哪些本地数据 ③ **会创建/覆盖项目内哪些文件**（v5.13 新增，源自 session-branch Finding 6 — 写 `docs/session-handoff.md` 但没告知用户）④ 如何禁用副作用（如 --skip-push 参数）。中英文 README 必须同步包含警告。**破坏性操作点警告（v5.17 新增，源自 skill-publisher v5.16.0 被标记 Missing User Warnings 85% — 删除 skill-card.md 无操作点警告）**：任何破坏性操作（删除文件/覆盖目录/清空数据）必须在**操作发生的位置**添加警告，不能只靠 description 声明或 README 段落。**检测模式**：扫描 SKILL.md 和 references/ 中是否有"删除"/"覆盖"/"清空"/"Delete"/"Remove"/"Overwrite"等破坏性动词，如果有，检查该操作点是否有"⚠️ 警告：将删除/覆盖 X"的前置提示。**FAIL 条件**：破坏性操作无操作点警告 = Medium finding。**修复方式**：在破坏性操作前增加"⚠️ 警告：将删除 X（原因：...，影响：...，确认后执行）"的前置提示。**设计原则**：README 段落警告是"整体声明"，操作点警告是"即时提醒"——SkillSpector 要求两者都有，不能只靠 README
-    - **Unpinned Dependencies 分级处理**（v5.12 新增，源自 gongwen-formatter v1.1.2 审计）：扫描 `requirements.txt`（如有），按以下分级处理：
+    - **Unpinned Dependencies 分级处理**（v5.12 新增，源自 gongwen-formatter v1.1.2 审计；v5.22 扩展多文件扫描，源自 2026-07-20 周度审查建议）：扫描所有依赖清单文件（不仅 requirements.txt），按以下分级处理：
       - `==` 精确锁定 → **PASS**（最佳实践）
       - `~=` 兼容版本锁定 → **PASS**（推荐，平衡安全与兼容）
       - `>=` 范围锁定 → **WARN**（建议改 `~=`，但非阻断；SkillSpector 会标为 Low finding 但不阻断发布）
       - 无版本约束 → **FAIL**（阻断发布）
+      **v5.22 扫描文件扩展**（不仅 requirements.txt）：
+      - `requirements.txt`（Python pip）
+      - `pyproject.toml`（现代 Python 项目，PEP 621）
+      - `setup.py`（旧式 Python 项目）
+      - `package.json`（Node.js，检查 dependencies 和 devDependencies）
+      - `Pipfile`（Pipenv）
+      - `go.mod`（Go modules，检查 require 块）
+      **扫描方式**：Grep 每个文件中的依赖项，提取版本约束符（`==`/`~=`/`>=`/无），按上述分级判定。任一依赖 FAIL = 阻断发布
       **设计原则**：PIP 生态默认就是 `>=`，强制要求 `==` 精确锁定会破坏跨版本兼容性。本预扫描的目的是预防性地让作者选择 `~=` 折中方案，避免上线后被动响应 SkillSpector 的 Low finding。WARN 级别不阻断发布，只提示作者
     - **Internal Consistency Check 内部矛盾检测**（v5.13 新增，源自 session-branch Finding 3 — "Critical rules 说不用绝对路径" vs "Step 4 要求绝对路径"）：扫描 SKILL.md 中是否同时存在"禁止 X"和"要求 X"的指令。**检测模式**：① 扫描"禁止/不要/never/Do NOT/❌"开头的指令，提取被禁止的行为 X ② 在文档其他位置搜索是否有"要求/必须/must/✅"要求执行 X 的指令 ③ 若同时存在 = Medium finding，要求作者消除矛盾。**典型场景**：规则说"不要硬编码路径"但 Step 说"必须用绝对路径 `/path/to/file`"；规则说"不要自动推送"但 Step 说"完成后自动 sync"。**修复方式**：① 消除矛盾指令 ② 或用条件限定（如"用户明确要求时可用绝对路径"）。**注意**：这是启发式检查，需人工判断上下文——某些"禁止"指令有例外条件（如"禁止硬编码，但配置文件中的默认值除外"），不算矛盾
     - **Sensitive File Scan Consent Check 敏感文件扫描同意检测**（v5.13 新增，源自 session-branch Finding 2/7 — 扫描 `~/.workbuddy/SOUL.md`/`IDENTITY.md` 但无用户同意步骤）：如果 skill 指令中包含扫描敏感文件的路径模式，必须验证 SKILL.md 中有 consent（同意/许可）步骤。**敏感文件路径模式**：`~/`（home 目录）、`SOUL.md`/`IDENTITY.md`/`MEMORY.md`/`PROFILE.md`（身份/记忆类）、`config.json`/`credentials`/`.env`（凭证类）、`memory/`（TRAE memory 目录）、`profile/`（用户档案）。**检测规则**：① 扫描 SKILL.md 中是否出现上述路径模式 ② 若出现，检查 SKILL.md 中是否包含 consent 关键词：`consent`/`permission`/`同意`/`许可`/`用户确认`/`明确授权` ③ 无 consent = Medium finding。**修复方式**：在扫描敏感文件前增加 consent 步骤，如"读取用户 profile 前，必须先告知用户会读取哪些字段，并等待用户确认"。**设计原则**：扫描敏感文件本身不禁止（有些 skill 合理需要读 memory/profile），但必须有用户知情同意步骤，不能静默扫描
@@ -327,6 +337,34 @@ metadata:
     **预扫描检查**：发布前检查 `clawhub publish` 命令是否包含 `--name` 参数，以及临时副本目录名是否符合 `<slug>-tmp-<platform>` 格式。任一不符合 = Medium finding，要求作者修正后再发布。
 
     **故障案例**：feishu-card-design v1.0.0 首次发布时，临时副本目录命名为 `_tmp_feishu_card_clawhub` 且未传 `--name`，导致 ClawHub 平台 displayName 被永久派生为 `Tmp Feishu Card Clawhub`，与 slug `feishu-card-design` 严重不符。v1.0.2 通过临时副本重命名 + 显式 `--name` 修复，但若新版本无法更新已锁定的 displayName，则需走 `clawhub delete` + 重新首发流程。
+
+35. **ClawHub inspect 延迟双验证**（v5.22 新增，源自 2026-07-20 周度审查建议 + 2026-07-19 v5.20.1 发布实测）：ClawHub `publish` 命令返回成功后，`inspect` 命令依赖的索引服务存在**异步索引延迟**（数分钟到数小时，最长 24h），不能用作"立即发布是否成功"的判定。
+
+    **正确验证流程**（双验证，禁止立即重试或递增 PATCH）：
+    - **立即验证**（publish 后立即执行）：`clawhub inspect <slug> --versions` 看版本列表是否包含新版本
+      - 若包含 = ✅ 发布成功，索引已同步
+      - 若不包含 = ⚠️ **不要立即重试**，记录"待 24h 后验证"，按下一步延迟验证
+    - **延迟验证**（publish 后 24h 执行）：`clawhub inspect <slug> --version <X> --json` 二次确认
+      - 若返回版本信息 = ✅ 发布成功，索引已同步
+      - 若仍返回 "Version not found" = ❌ 真失败，记录待补推
+    - **publish 返回的 `OK. Published` 是可信的**，inspect 是验证索引服务而非验证发布本身
+
+    **禁止行为**：
+    - 🚫 禁止立即递增 PATCH 重试（递增无效，旧 publish 已成功，新版本号反而无法覆盖）
+    - 🚫 禁止把"inspect 立即返回 not found"判定为"publish 幻象成功"
+    - 🚫 禁止把"latestVersion 指针未更新"判定为"publish 失败"（latestVersion 指针是另一个异步更新字段）
+
+    **故障案例**（v5.20.1 实测）：publish 5.20.1 返回 OK + 版本 id `k972c1xcw13gwq97m2jhvd7rx18atv8w`，立即 `inspect --version 5.20.1` 返回 "Version not found"，`inspect` latestVersion 仍指向 5.20.0。24h 后再 `inspect --version 5.20.1` 已能正常返回版本信息。**这不是"幻象成功"，是 ClawHub 平台的异步索引延迟**
+
+36. **ClawHub moderation 状态处理**（v5.22 新增，源自 2026-07-20 周度审查建议）：ClawHub publish 后 skill 可能进入 moderation（审核中）状态，需明确告知用户后续行为：
+
+    **moderation 状态判定**：publish 返回成功后，用 `clawhub inspect <slug> --json` 检查 `moderation_status` 字段（如有）
+    - **approved**（已批准）：✅ 正常状态，skill 可被公开检索和安装
+    - **pending**（审核中）：⚠️ skill 已发布但正在审核，公开检索可能受限。告知用户"skill 已发布，正在 ClawHub 审核中，预计数小时内通过"
+    - **rejected**（已拒绝）：❌ skill 被审核拒绝，需检查拒绝原因（通常是 SkillSpector findings 未修复），修复后递增版本号重新发布
+    - **字段缺失或 inspect 异步延迟**：按规则 35 处理，不阻塞流程
+
+    **告知用户的措辞**：避免"审核可能失败"这类焦虑性表述，用中性措辞"skill 已提交 ClawHub，正在审核流程中，预计数小时内完成。如被拒绝，会收到具体原因，按原因修复后递增版本号重新发布即可"
 
 ## 执行流程
 

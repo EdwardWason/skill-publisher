@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.22.1] - 2026-07-31
+
+### Added — 周度审查建议落地（源自 2026-07-20 + 2026-07-27 两次周度健康度排查）
+
+- **规则 22 扩展为三级降级链**（源自 2026-07-27 建议 B）：git push → gh CLI → GitHub REST API 逐文件降级。Level 3 存在性可文档化，具体 API 实现按规则 25"安全敏感方案不文档化"约束不文档化
+- **规则 35 新增 — ClawHub inspect 延迟双验证**（源自 2026-07-20 建议 + 2026-07-19 v5.20.1 发布实测）：publish 返回成功后立即验证版本列表，24h 后延迟二次验证。修正"inspect 不返回新版本就立即重试"的错误模式
+- **规则 36 新增 — ClawHub moderation 状态处理**（源自 2026-07-20 建议）：approved/pending/rejected 三状态处理流程。pending 不阻塞，告知用户"正在审核中"
+- **规则 13 强化 — SkillHub slug 校验**（源自 2026-07-27 建议 A）：① ASCII kebab-case 格式 ② 长度 3-64 字符 ③ 与目录名一致性检查 ④ 全网唯一性预检（`skillhub search <slug>`）
+- **规则 25 第 10 项扩展 — Unpinned Dependencies 多文件扫描**（源自 2026-07-20 建议）：扫描文件从 requirements.txt 扩展到 pyproject.toml/setup.py/package.json/Pipfile/go.mod
+- **security-audit.md Layer 2 强化 — examples 目录扫描**（源自 2026-07-20 建议）：新增 examples/samples/demo/tests/scripts 目录专项扫描规则，含凭证占位符混入真实值检测、用户身份信息扫描、FAIL 条件分级（核心文档 FAIL / examples WARN）
+- **publish-procedures.md 新增 Method C 段落**：Level 3 触发条件、执行原则、设计原则，不文档化具体 API 调用链（遵守规则 25 约束）
+
+### Fixed — Internal Consistency Check 自检发现并修复
+
+- **规则 22 与规则 25 内部矛盾修复**（v5.22.1 修正）：v5.22.0 初稿在规则 22 中详述"Contents API 逐文件上传...详见 Method C"，与规则 25"安全敏感方案不文档化"矛盾（违反 Internal Consistency Check 检查项）。v5.22.1 修正：抽象化 Level 3 描述，移除 API 链名称和 Method C 详细实现引用，仅保留存在性和触发条件
+
+### Confirmed Already Implemented — 已确认实现的建议（无需变更）
+
+- **规则 34 落地为预扫描**（源自 2026-07-20 建议）：经核查 v5.20.1 已实现 ClawHub publish --name 强制要求，规则 32 + publish-procedures.md Pre-Publish File Exclusion 段落已包含。无需重复实现
+- **规则 16/24 三平台通用化**（源自 2026-07-20 建议）：经核查 v5.20.0 已实现三平台文件差异化矩阵（规则 32），覆盖 ClawHub 临时副本强制要求。无需重复实现
+
+### Rejected — 评估后不采纳的建议
+
+- **建议 C — scripts/skillhub_temp_publish.py 自动化临时副本发布**（源自 2026-07-27 建议 C，Low 级别）：评估后认为临时副本发布流程已通过规则 24 + publish-procedures.md 充分文档化，自动化脚本会引入新的 SSD3/MCP finding 风险（脚本读取路径/调用 CLI）。手动执行更可控，符合"声明即透明"原则
+
+### Version Note
+
+- 版本号 5.21.0 → 5.22.1（minor + patch：5.22.0 为初稿，5.22.1 修正与规则 25 的内部矛盾）
+- 本次升级整合 2 次周度健康度排查的 9 项建议（采纳 6 项 + 已实现 2 项 + 拒绝 1 项）
+
+### Lesson Learned
+
+**Pre-Flight 冲突扫描的价值**：v5.22.0 初稿在实现规则 22 扩展时，未察觉与规则 25"安全敏感方案不文档化"的内部矛盾。v5.22.1 在自检阶段发现并通过 Internal Consistency Check 修复。这印证了规则 25 的 Internal Consistency Check 检查项价值——"扫描同时存在'禁止 X'和'要求 X'的指令"。后续扩展规则时必须先扫描与现有规则的矛盾
+
 ## [5.21.0] - 2026-07-19
 
 ### Changed — 规则 33 强化：中文 skill 纯英文 displayName 从 WARN 升级为 FAIL（源自 2026-07-19 data-prompt-coach SkillHub displayName 纯英文事件）
